@@ -1,0 +1,33 @@
+{
+  "name": "velar-flowvault-example",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build:sdk": "node ../../scripts/build-sdk.cjs",
+    "prebuild": "npm run build:sdk",
+    "predev": "npm run build:sdk",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "go": "npm run build && npx next start -p 3000",
+    "pretest": "npm run build:sdk",
+    "test": "vitest run",
+    "pretypecheck": "npm run build:sdk",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stacks/connect": "^8.2.4",
+    "@stacks/transactions": "^7.3.1",
+    "flowvault-sdk": "file:../../flowvault-sdk",
+    "next": "16.1.7",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}
