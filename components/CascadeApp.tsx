@@ -290,6 +290,41 @@ export function CascadeApp() {
           </div>
         </section>
 
+        {/* ── Why Cascade Is Different ── */}
+        <section className="diff-section">
+          <div className="diff-section__inner">
+            <h2>Why Cascade Is Different</h2>
+            <div className="diff-columns">
+              <div className="diff-card diff-card--old">
+                <span className="diff-card__label">Traditional FlowVault App</span>
+                <div className="diff-flow">
+                  <span className="diff-flow__node">Deposit</span>
+                  <span className="diff-flow__arrow">&rarr;</span>
+                  <span className="diff-flow__node">Lock</span>
+                </div>
+                <p className="diff-card__desc">Single primitive. One vault. Manual orchestration.</p>
+              </div>
+              <div className="diff-card diff-card--new">
+                <span className="diff-card__label">Cascade</span>
+                <div className="diff-flow diff-flow--multi">
+                  <span className="diff-flow__node">Deposit</span>
+                  <div className="diff-flow__branches">
+                    <span className="diff-flow__node">&boxur; Lock</span>
+                    <span className="diff-flow__node">&boxur; Split</span>
+                    <span className="diff-flow__node">&boxur; Hold</span>
+                    <span className="diff-flow__node">&boxur; More Cascades</span>
+                  </div>
+                </div>
+                <p className="diff-card__desc">All three primitives. Recursive DAG. Fully automated.</p>
+              </div>
+            </div>
+            <p className="diff-section__tagline">
+              Cascade transforms FlowVault primitives into recursive programmable money systems,
+              enabling organizations to compose entirely new financial behaviors from reusable routing graphs.
+            </p>
+          </div>
+        </section>
+
         {/* ── CTA ── */}
         <section className="cascade-execute">
           <div className="cascade-execute__head">
