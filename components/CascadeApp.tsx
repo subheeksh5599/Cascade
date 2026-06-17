@@ -200,7 +200,6 @@ export function CascadeApp() {
       <main className={`velar-main ${loading ? "velar-main--hidden" : "velar-main--visible"}`}>
         <header className="topbar-fixed">
           <div className="brand"><span className="brand-name">Cascade</span></div>
-          <nav className="topbar-nav"><span className="nav-link active">Editor</span><span className="nav-link">How It Works</span><span className="nav-link">Docs</span></nav>
           <WalletButton />
         </header>
 
