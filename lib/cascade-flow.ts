@@ -1,7 +1,7 @@
 import type { RoutingRules, TransactionResult } from "flowvault-sdk";
 import type { CascadeGraph, CascadeNode } from "@/lib/graph-engine";
 import { topologicalSort, getChildren, getNodeById } from "@/lib/graph-engine";
-import { waitForTransactionSuccess, buildDepositPostConditions } from "@/lib/escrow-flow";
+import { waitForTransactionSuccess } from "@/lib/escrow-flow";
 
 export type CascadeStep = {
   nodeId: string;

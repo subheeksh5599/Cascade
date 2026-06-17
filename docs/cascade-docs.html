@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cascade — Recursive Money Flow Graphs on FlowVault</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&family=Inter+Tight:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter Tight', system-ui, sans-serif; color: #1a1720; line-height: 1.6; background: #fff; }
+  
+  .cover {
+    height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #f0fdfa 0%, #fafaf9 60%, #f5f2ed 100%);
+    text-align: center; padding: 80px 40px; page-break-after: always;
+  }
+  .cover h1 {
+    font-family: 'Playfair Display', Georgia, serif; font-size: 72px; font-weight: 700; font-style: italic;
+    color: #0f766e; letter-spacing: 0.02em; margin-bottom: 16px;
+  }
+  .cover .subtitle { font-size: 20px; color: rgba(26,23,32,0.55); letter-spacing: 0.08em; text-transform: uppercase; }
+  .cover .line { width: 80px; height: 2px; background: #0f766e; margin: 40px auto; }
+  .cover .meta { font-size: 13px; color: rgba(26,23,32,0.4); display: flex; gap: 40px; margin-top: 40px; }
+  .cover .meta span { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .cover .meta strong { font-weight: 600; color: #0f766e; font-size: 16px; }
+  .cover .badge-row { display: flex; gap: 12px; margin-top: 28px; }
+  .cover .badge {
+    padding: 6px 18px; border: 1px solid rgba(15,118,110,0.25); border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #0f766e;
+  }
+
+  .section { padding: 60px 80px; max-width: 900px; margin: 0 auto; page-break-inside: avoid; }
+  .section.dark { background: #0f172a; color: #e2e8f0; max-width: none; padding: 60px 80px; }
+  .section.dark h2 { color: #5eead4; }
+  .section.dark p { color: #94a3b8; }
+  h2 {
+    font-family: 'Playfair Display', Georgia, serif; font-size: 36px; font-weight: 500; font-style: italic;
+    color: #0f766e; margin-bottom: 24px;
+  }
+  h3 { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #0f766e; margin: 32px 0 12px; }
+  p { font-size: 15px; color: rgba(26,23,32,0.7); margin-bottom: 16px; }
+  .dark h2, .dark h3 { color: #14b8a6; }
+
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 900px; margin: 0 auto; }
+  .columns .left { padding: 60px 0 60px 80px; }
+  .columns .right { padding: 60px 80px 60px 0; }
+
+  .primitive-card {
+    border: 1px solid rgba(15,118,110,0.12); border-radius: 10px; padding: 28px;
+    background: #fff; margin-bottom: 20px;
+  }
+  .primitive-card .icon {
+    width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; margin-bottom: 12px;
+  }
+  .primitive-card .icon.lock { background: rgba(15,118,110,0.1); color: #0f766e; }
+  .primitive-card .icon.split { background: rgba(13,148,136,0.1); color: #0d9488; }
+  .primitive-card .icon.hold { background: rgba(20,184,166,0.1); color: #14b8a6; }
+  .primitive-card h4 { font-family: 'Playfair Display', serif; font-size: 20px; font-style: italic; margin-bottom: 6px; }
+  .primitive-card p { font-size: 13px; color: rgba(26,23,32,0.55); }
+
+  .graph-diagram {
+    width: 100%; max-width: 600px; margin: 30px auto; display: block;
+  }
+
+  .usecase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .usecase {
+    border: 1px solid rgba(15,118,110,0.1); border-radius: 10px; overflow: hidden;
+    background: #fff;
+  }
+  .usecase img { width: 100%; height: 180px; object-fit: cover; }
+  .usecase .body { padding: 20px; }
+  .usecase .body strong { display: block; font-size: 15px; margin-bottom: 4px; }
+  .usecase .body p { font-size: 12px; color: rgba(26,23,32,0.5); }
+
+  .code-block {
+    background: #1e293b; color: #5eead4; padding: 20px 28px; border-radius: 8px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.7;
+    overflow-x: auto; margin: 16px 0;
+  }
+  .code-block .kw { color: #f78ce4; }
+  .code-block .fn { color: #38bdf8; }
+  .code-block .str { color: #a3e635; }
+  .code-block .cmt { color: #64748b; }
+
+  table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(26,23,32,0.4); padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid rgba(0,0,0,0.04); }
+  .dark th { color: rgba(255,255,255,0.35); border-color: rgba(255,255,255,0.06); }
+  .dark td { border-color: rgba(255,255,255,0.04); color: #cbd5e1; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid rgba(15,118,110,0.12); border-radius: 10px; overflow: hidden; margin: 30px 0; }
+  .stat { text-align: center; padding: 28px 16px; border-right: 1px solid rgba(15,118,110,0.08); }
+  .stat:last-child { border-right: 0; }
+  .stat .num { font-family: 'Playfair Display', serif; font-size: 44px; font-weight: 700; font-style: italic; color: #0f766e; }
+  .stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(26,23,32,0.4); margin-top: 4px; }
+
+  .links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+  .links a {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border: 1px solid rgba(15,118,110,0.25); border-radius: 6px;
+    background: #fff; color: #0f766e; font-size: 13px; font-weight: 500; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .links a:hover { background: rgba(15,118,110,0.05); }
+
+  .footer-links { display: flex; gap: 40px; justify-content: center; padding: 40px 80px 60px; border-top: 1px solid rgba(0,0,0,0.05); }
+  .footer-links a { color: rgba(26,23,32,0.4); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <h1>Cascade</h1>
+  <div class="subtitle">Recursive Money Flow Graphs on FlowVault</div>
+  <div class="line"></div>
+  <p style="max-width:520px; margin:0 auto; font-size:17px; color:rgba(26,23,32,0.6);">
+    One deposit. A directed acyclic graph of FlowVault vaults executes. The keeper automaton chains Lock, Split, and Hold at every downstream node until the entire cascade settles.
+  </p>
+  <div class="badge-row">
+    <span class="badge">Built on Stacks</span>
+    <span class="badge">FlowVault SDK</span>
+    <span class="badge">Stacks Testnet</span>
+  </div>
+  <div class="meta">
+    <span><strong>3</strong> Primitives</span>
+    <span><strong>2</strong> Templates</span>
+    <span><strong>1</strong> Contract</span>
+    <span><strong>100%</strong> On-Chain</span>
+  </div>
+</div>
+
+<!-- WHAT IT DOES -->
+<div class="section">
+  <h2>What Cascade Does</h2>
+  <p>
+    Most financial applications only <em>move</em> money. Cascade defines how money <em>behaves</em> after deposit.
+    Builders define a directed acyclic graph where each node is a FlowVault routing rule. The keeper automaton walks the graph in topological order — configuring routing rules, executing deposits, and cascading funds to downstream nodes — until every leaf node receives its allocation.
+  </p>
+
+  <svg class="graph-diagram" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+        <polygon points="0 0,7 2.5,0 5" fill="#0f766e"/>
+      </marker>
+      <linearGradient id="bg-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f0fdfa"/>
+        <stop offset="100%" stop-color="#fff"/>
+      </linearGradient>
+    </defs>
+    <rect width="600" height="400" fill="url(#bg-grad)" rx="12"/>
+    <!-- Root -->
+    <rect x="200" y="30" width="200" height="50" rx="8" fill="#0f766e"/>
+    <text x="300" y="52" text-anchor="middle" fill="#fff" font-family="Inter Tight,sans-serif" font-size="12" font-weight="600">Company Deposit</text>
+    <text x="300" y="69" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Inter Tight,sans-serif" font-size="10">Split · Root</text>
+    <!-- Edges root → children -->
+    <path d="M250,80 C250,140 140,140 140,170" fill="none" stroke="#0f766e" stroke-width="2" marker-end="url(#arr)"/>
+    <path d="M350,80 C350,140 460,140 460,170" fill="none" stroke="#0f766e" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- Left child: Lock -->
+    <rect x="60" y="170" width="160" height="50" rx="8" fill="rgba(15,118,110,0.1)" stroke="#0f766e" stroke-width="1.5"/>
+    <text x="140" y="192" text-anchor="middle" fill="#0f766e" font-family="Inter Tight,sans-serif" font-size="12" font-weight="600">90-Day Runway</text>
+    <text x="140" y="209" text-anchor="middle" fill="rgba(15,118,110,0.6)" font-family="Inter Tight,sans-serif" font-size="10">Lock · 60% · 12,960 blocks</text>
+    <!-- Right child: Split -->
+    <rect x="380" y="170" width="160" height="50" rx="8" fill="rgba(13,148,136,0.1)" stroke="#0d9488" stroke-width="1.5"/>
+    <text x="460" y="192" text-anchor="middle" fill="#0d9488" font-family="Inter Tight,sans-serif" font-size="12" font-weight="600">Salary Pool</text>
+    <text x="460" y="209" text-anchor="middle" fill="rgba(13,148,136,0.6)" font-family="Inter Tight,sans-serif" font-size="10">Split · 35%</text>
+    <!-- Edges split → leaves -->
+    <path d="M420,220 C420,280 340,280 340,320" fill="none" stroke="#14b8a6" stroke-width="1.5" marker-end="url(#arr)"/>
+    <path d="M500,220 C500,280 540,280 540,320" fill="none" stroke="#14b8a6" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- Leaves: Hold -->
+    <rect x="270" y="320" width="140" height="50" rx="8" fill="rgba(20,184,166,0.06)" stroke="#14b8a6" stroke-width="1.5"/>
+    <text x="340" y="342" text-anchor="middle" fill="#14b8a6" font-family="Inter Tight,sans-serif" font-size="11" font-weight="600">Dev Lead</text>
+    <text x="340" y="359" text-anchor="middle" fill="rgba(20,184,166,0.6)" font-family="Inter Tight,sans-serif" font-size="10">Hold</text>
+    <rect x="470" y="320" width="140" height="50" rx="8" fill="rgba(20,184,166,0.06)" stroke="#14b8a6" stroke-width="1.5"/>
+    <text x="540" y="342" text-anchor="middle" fill="#14b8a6" font-family="Inter Tight,sans-serif" font-size="11" font-weight="600">Frontend Dev</text>
+    <text x="540" y="359" text-anchor="middle" fill="rgba(20,184,166,0.6)" font-family="Inter Tight,sans-serif" font-size="10">Hold</text>
+  </svg>
+</div>
+
+<!-- FLOWVAULT INTEGRATION -->
+<div class="columns">
+  <div class="left">
+    <h2>FlowVault Integration</h2>
+    <p>
+      Cascade uses all three FlowVault primitives in combination, orchestrated by a DAG engine. The keeper walks nodes in topological order, calling the FlowVault SDK at each step.
+    </p>
+
+    <div class="primitive-card">
+      <div class="icon lock">&#x1f512;</div>
+      <h4>Lock</h4>
+      <p>Time-bound escrow at each node. Funds are locked until a specific Stacks block height. Used for runway reserves, milestone locks, and vesting schedules.</p>
+    </div>
+    <div class="primitive-card">
+      <div class="icon split">&#x2696;</div>
+      <h4>Split</h4>
+      <p>Instant routing to recipient addresses. A percentage of incoming funds is sent to a designated Stacks principal — salaries, DAO contributors, agent commissions.</p>
+    </div>
+    <div class="primitive-card">
+      <div class="icon hold">&#x1f4a7;</div>
+      <h4>Hold</h4>
+      <p>Liquid pass-through. The remaining balance after Lock and Split stays available and cascades to downstream child nodes, powering the recursive flow.</p>
+    </div>
+  </div>
+  <div class="right" style="display:flex;align-items:center;justify-content:center;">
+    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500&h=700&fit=crop&q=80" 
+         style="width:100%;max-width:400px;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.1);" 
+         alt="Cascade flow visualization"/>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section dark">
+  <h2>How It Works</h2>
+  <p>A directed acyclic graph of FlowVault vaults. One deposit. Automated execution. On-chain settlement.</p>
+
+  <div class="stats-row" style="border-color:rgba(255,255,255,0.08);">
+    <div class="stat" style="border-color:rgba(255,255,255,0.05);"><span class="num" style="color:#5eead4;">1</span><span class="label" style="color:rgba(255,255,255,0.35);">Root Deposit</span></div>
+    <div class="stat" style="border-color:rgba(255,255,255,0.05);"><span class="num" style="color:#5eead4;">3</span><span class="label" style="color:rgba(255,255,255,0.35);">Primitives</span></div>
+    <div class="stat" style="border-color:rgba(255,255,255,0.05);"><span class="num" style="color:#5eead4;">∞</span><span class="label" style="color:rgba(255,255,255,0.35);">Graph Depth</span></div>
+    <div class="stat"><span class="num" style="color:#5eead4;">100%</span><span class="label" style="color:rgba(255,255,255,0.35);">On-Chain</span></div>
+  </div>
+
+  <h3>Execution Flow</h3>
+  <table>
+    <tr><th>Step</th><th>Action</th><th>FlowVault Call</th></tr>
+    <tr><td>1</td><td>Validate DAG (no cycles, single root)</td><td>—</td></tr>
+    <tr><td>2</td><td>Topological sort nodes</td><td>—</td></tr>
+    <tr><td>3</td><td>For each node: clear previous routing</td><td><code>clearRoutingRules()</code></td></tr>
+    <tr><td>4</td><td>Set Lock + Split rules for node</td><td><code>setRoutingRules({lockAmount, splitAddress, splitAmount})</code></td></tr>
+    <tr><td>5</td><td>Deposit funds into node's vault</td><td><code>deposit(amount)</code></td></tr>
+    <tr><td>6</td><td>Calculate downstream allocation</td><td>—</td></tr>
+    <tr><td>7</td><td>Repeat for all children in order</td><td>Loop to step 3</td></tr>
+  </table>
+
+  <div class="code-block">
+<span class="cmt">// Cascade keeper automaton — processes nodes in topological order</span>
+<span class="kw">for</span> (<span class="kw">const</span> nodeId <span class="kw">of</span> <span class="fn">topologicalSort</span>(graph)) {
+  <span class="kw">const</span> alloc = <span class="fn">calculateNodeAllocation</span>(node, totalMicro, graph);
+  <span class="kw">await</span> sdk.<span class="fn">clearRoutingRules</span>();
+  <span class="kw">const</span> tx = <span class="kw">await</span> sdk.<span class="fn">setRoutingRules</span>({
+    <span class="str">lockAmount</span>: alloc.lockAmount,
+    <span class="str">lockUntilBlock</span>: lockUntil,
+    <span class="str">splitAddress</span>: alloc.splitAddress,
+    <span class="str">splitAmount</span>: alloc.splitAmount,
+  });
+  <span class="kw">await</span> sdk.<span class="fn">deposit</span>(totalMicro);
+  <span class="cmt">// Cascade remainder to children</span>
+}
+  </div>
+</div>
+
+<!-- USE CASES -->
+<div class="section">
+  <h2>What You Can Cascade</h2>
+  <p>Every multi-step money flow becomes a single deposit. No manual transfers. No spreadsheets.</p>
+
+  <div class="usecase-grid">
+    <div class="usecase">
+      <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=400&fit=crop&q=80" alt="Payroll">
+      <div class="body"><strong>Payroll Cascade</strong><p>One deposit → salaries distributed, runway locked, emergency reserves filled. Entire org paid in one transaction.</p></div>
+    </div>
+    <div class="usecase">
+      <img src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&h=400&fit=crop&q=80" alt="DAO Treasury">
+      <div class="body"><strong>DAO Treasury</strong><p>Community funds auto-route to working groups, core reserves, and contributor pools. Governance enforced on-chain.</p></div>
+    </div>
+    <div class="usecase">
+      <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=400&fit=crop&q=80" alt="Revenue Splits">
+      <div class="body"><strong>Revenue Splits</strong><p>Product revenue split across team, investors, and ops — recursively. No manual transfers.</p></div>
+    </div>
+    <div class="usecase">
+      <img src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&h=400&fit=crop&q=80" alt="Milestone Escrow">
+      <div class="body"><strong>Milestone Escrow</strong><p>Client funds locked. Milestone met → portion released. Sub-milestones cascade to subcontractors.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- SMART CONTRACT -->
+<div class="section dark">
+  <h2>Smart Contract</h2>
+  <p>
+    <code>cascade-registry-v2</code> stores published cascade graph definitions on-chain. Graphs are discoverable, forkable, and verifiable.
+  </p>
+
+  <div class="code-block">
+<span class="cmt">;; Cascade Registry — On-Chain Graph Storage</span>
+<span class="cmt">;; Stores graph metadata (name, description, node/edge counts, creator)</span>
+
+<span class="kw">(define-read-only</span> (<span class="fn">get-graph</span> (graph-id uint))
+  (<span class="kw">match</span> (<span class="fn">map-get?</span> graphs { graph-id: graph-id })
+    graph (<span class="kw">ok</span> graph)
+    ERR-GRAPH-NOT-FOUND))
+
+<span class="kw">(define-read-only</span> (<span class="fn">get-graphs-by-creator</span> (creator principal))
+  (<span class="kw">ok</span> (<span class="fn">default-to</span> u0
+    (<span class="kw">get</span> count (<span class="fn">map-get?</span> creator-graph-count { creator: creator })))))
+
+<span class="kw">(define-public</span> (<span class="fn">register-graph</span>
+    (name (<span class="str">string-ascii</span> 64))
+    (description (<span class="str">string-ascii</span> 256))
+    (node-count uint) (edge-count uint))
+  <span class="cmt">;; Validates name length, stores graph metadata, increments counter</span>
+  ...)
+  </div>
+
+  <p style="margin-top:16px;">
+    <strong>Deployed on Stacks Testnet:</strong><br/>
+    <code style="font-size:14px; color:#5eead4;">ST3EH039PNE6HSXYV1CY0AC58SA0N06GMHS3CQB9H.cascade-registry-v2</code>
+  </p>
+</div>
+
+<!-- ARCHITECTURE -->
+<div class="section">
+  <h2>Architecture</h2>
+
+  <table>
+    <tr><th>Layer</th><th>Technology</th><th>Responsibility</th></tr>
+    <tr><td>Frontend</td><td>Next.js 16, React 19, TypeScript</td><td>Landing page, graph editor, wallet integration</td></tr>
+    <tr><td>Graph Engine</td><td>TypeScript</td><td>DAG validation, cycle detection, topological sort, allocation math</td></tr>
+    <tr><td>Cascade Keeper</td><td>TypeScript + FlowVault SDK</td><td>Multi-node FlowVault orchestrator, automated cascade execution</td></tr>
+    <tr><td>Smart Contract</td><td>Clarity</td><td>On-chain graph registry — publish, discover, fork cascade templates</td></tr>
+    <tr><td>FlowVault Layer</td><td>Clarity (Stacks testnet)</td><td>Lock, Split, Hold primitives for programmable USDCx routing</td></tr>
+    <tr><td>Wallet</td><td>@stacks/connect</td><td>Leather, Xverse wallet integration for transaction signing</td></tr>
+    <tr><td>Testing</td><td>Vitest, Clarinet</td><td>16 unit tests for graph engine + cascade flow logic</td></tr>
+  </table>
+</div>
+
+<!-- LINKS -->
+<div class="section" style="text-align:center;">
+  <h2>Deployments &amp; Links</h2>
+  <div class="links" style="justify-content:center;">
+    <a href="https://cascade-rust.vercel.app" target="_blank">Live Demo</a>
+    <a href="https://cascade-rust.vercel.app/editor" target="_blank">Editor</a>
+    <a href="https://github.com/subheeksh5599/Cascade" target="_blank">GitHub Repository</a>
+    <a href="https://explorer.hiro.so/txid/0x294a7f27abcdac1dbcf5d482e04566f1eae70e1d5ce64f07ea0ef8b3c4dceb13?chain=testnet" target="_blank">Contract on Explorer</a>
+  </div>
+
+  <p style="margin-top:40px; font-size:13px; color:rgba(26,23,32,0.35);">
+    Cascade &middot; Recursive Money Flow Graphs &middot; Built with FlowVault on Stacks
+  </p>
+</div>
+
+</body>
+</html>

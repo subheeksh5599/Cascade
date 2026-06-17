@@ -9,10 +9,6 @@ import {
   topologicalSort,
 } from "@/lib/graph-engine";
 
-type NodeTypeStr = "lock" | "split" | "hold";
-
-const NODE_COLORS: Record<string, string> = { lock: "#0f766e", split: "#0d9488", hold: "#14b8a6" };
-
 const USE_CASES = [
   {
     title: "Payroll Cascade",
@@ -35,62 +31,6 @@ const USE_CASES = [
     image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&h=800&fit=crop&q=80",
   },
 ];
-
-function GraphSVG({ graph, activeNode, cascadeDone }: {
-  graph: CascadeGraph; activeNode: string | null; cascadeDone: boolean;
-}) {
-  const NODE_W = 130; const NODE_H = 50;
-  const nodes = graph.nodes; const edges = graph.edges;
-  return (
-    <svg className="graph-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <marker id="arrowhead" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-          <polygon points="0 0, 7 2.5, 0 5" fill="#0f766e" />
-        </marker>
-        <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-      </defs>
-      {edges.map((edge, i) => {
-        const from = nodes.find((n) => n.id === edge.from);
-        const to = nodes.find((n) => n.id === edge.to);
-        if (!from || !to) return null;
-        const x1 = from.x + NODE_W / 2; const y1 = from.y + NODE_H;
-        const x2 = to.x + NODE_W / 2; const y2 = to.y;
-        const midY = (y1 + y2) / 2;
-        const isActive = activeNode === edge.from || (cascadeDone && !activeNode);
-        return (
-          <g key={`e-${i}`}>
-            <path d={`M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`} fill="none"
-              stroke={isActive ? NODE_COLORS.split : "rgba(0,0,0,0.1)"}
-              strokeWidth={isActive ? 2 : 1.2} strokeDasharray={isActive ? "none" : "5,4"}
-              markerEnd="url(#arrowhead)" />
-            {isActive && <circle r="3.5" fill={NODE_COLORS.split}>
-              <animateMotion dur="1.8s" repeatCount="indefinite" path={`M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`} />
-            </circle>}
-          </g>
-        );
-      })}
-      {nodes.map((node) => {
-        const sorted = topologicalSort(graph); const order = sorted.indexOf(node.id);
-        const isActive = activeNode === node.id;
-        return (
-          <g key={node.id}>
-            <rect x={node.x} y={node.y} width={NODE_W} height={NODE_H} rx={6}
-              fill={isActive ? NODE_COLORS[node.type] : "white"}
-              stroke={NODE_COLORS[node.type]} strokeWidth={isActive ? 2 : 1.2}
-              filter={isActive ? "url(#glow)" : undefined}
-              style={{ transition: "fill 0.3s ease, stroke 0.3s ease", cursor: "pointer" }} />
-            <text x={node.x + 10} y={node.y + 20} fontFamily="Inter Tight,sans-serif" fontSize={10} fontWeight={600}
-              fill={isActive ? "white" : "#1a1720"}>{node.type.toUpperCase()}</text>
-            <text x={node.x + 10} y={node.y + 38} fontFamily="Inter Tight,sans-serif" fontSize={12} fontWeight={500}
-              fill={isActive ? "white" : "#1a1720"}>{node.label}</text>
-            <text x={node.x + NODE_W - 10} y={node.y + 20} fontFamily="Inter Tight,sans-serif" fontSize={15} fontWeight={700}
-              fill={isActive ? "rgba(255,255,255,0.35)" : NODE_COLORS[node.type]} textAnchor="end">{order + 1}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
 
 const NODE_W = 140;
 const NODE_H = 56;
@@ -219,7 +159,7 @@ function StepCounter({ rp, template }: { rp: number; template: { graph: CascadeG
       <div className="building-reveal__line" style={{ transform: `scaleX(${rp})` }} />
       <p className="building-reveal__tagline">
         {rp >= 0.99
-          ? "All five nodes executed. The entire cascade settles on-chain."
+          ? `All ${total} nodes executed. The entire cascade settles on-chain.`
           : currentIdx === 0
             ? "The root deposit lands. The keeper configures this node's Lock and Split rules via FlowVault."
             : currentIdx < total - 1
@@ -273,6 +213,9 @@ export function CascadeApp() {
               and a keeper automaton executes Lock, Split, and Hold at every downstream node in sequence.
               No manual transfers. No "send me my share." One transaction triggers the entire cascade.
             </p>
+            <a href="/editor" className="btn-accent fade-in stagger-2" style={{ display: "inline-flex", marginTop: 24, textDecoration: "none" }}>
+              Open Editor
+            </a>
           </div>
         </section>
 

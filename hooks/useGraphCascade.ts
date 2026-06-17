@@ -69,13 +69,6 @@ export function useGraphCascade(walletAddress: string | null) {
           const lockUntil = currentBlock + (node.lockUntilDelta ?? 144);
 
           await sdk.clearRoutingRules();
-          await sdk.setRoutingRules({
-            lockAmount: alloc.lockAmount,
-            lockUntilBlock: lockUntil,
-            splitAddress: alloc.splitAddress || null,
-            splitAmount: alloc.splitAmount,
-          });
-
           const strategyTx = await sdk.setRoutingRules({
             lockAmount: alloc.lockAmount,
             lockUntilBlock: lockUntil,

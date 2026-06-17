@@ -151,6 +151,91 @@ export function getNodeById(id: string, graph: CascadeGraph): CascadeNode | unde
 
 export const TEMPLATES: { name: string; description: string; graph: CascadeGraph }[] = [
   {
+    name: "Startup Payroll",
+    description: "Revenue → Treasury lock + Tax reserve + Team payroll via Split→Hold chain",
+    graph: {
+      nodes: [
+        { id: "root", type: "split", label: "Revenue", x: 400, y: 40, splitAddress: "", splitAmount: "0" },
+        { id: "treasury", type: "lock", label: "Treasury 40%", x: 100, y: 200, lockAmount: "40", lockUntilDelta: 43200 },
+        { id: "tax", type: "lock", label: "Tax Reserve 10%", x: 400, y: 200, lockAmount: "10", lockUntilDelta: 21600 },
+        { id: "payroll", type: "split", label: "Payroll 50%", x: 700, y: 200, splitAmount: "0", splitAddress: "" },
+        { id: "eng", type: "hold", label: "Engineer", x: 550, y: 380 },
+        { id: "design", type: "hold", label: "Designer", x: 700, y: 380 },
+        { id: "pm", type: "hold", label: "PM", x: 850, y: 380 },
+      ],
+      edges: [
+        { from: "root", to: "treasury" },
+        { from: "root", to: "tax" },
+        { from: "root", to: "payroll" },
+        { from: "payroll", to: "eng" },
+        { from: "payroll", to: "design" },
+        { from: "payroll", to: "pm" },
+      ],
+    },
+  },
+  {
+    name: "Creator Economy",
+    description: "Revenue → Creator payout + Editor + Community pool + Emergency reserve",
+    graph: {
+      nodes: [
+        { id: "root", type: "split", label: "Revenue", x: 400, y: 40, splitAddress: "", splitAmount: "0" },
+        { id: "creator", type: "split", label: "Creator 70%", x: 100, y: 200, splitAmount: "70", splitAddress: "" },
+        { id: "editor", type: "hold", label: "Editor 15%", x: 400, y: 200 },
+        { id: "community", type: "hold", label: "Community 10%", x: 700, y: 200 },
+        { id: "reserve", type: "lock", label: "Reserve 5%", x: 200, y: 380, lockAmount: "5", lockUntilDelta: 1440 },
+        { id: "sub1", type: "hold", label: "Music", x: 500, y: 380 },
+        { id: "sub2", type: "hold", label: "Art", x: 800, y: 380 },
+      ],
+      edges: [
+        { from: "root", to: "creator" },
+        { from: "root", to: "editor" },
+        { from: "root", to: "community" },
+        { from: "root", to: "reserve" },
+        { from: "creator", to: "sub1" },
+        { from: "creator", to: "sub2" },
+      ],
+    },
+  },
+  {
+    name: "AI Treasury",
+    description: "Revenue → Agent ops + Compute budget + Safety reserve + Profit vault",
+    graph: {
+      nodes: [
+        { id: "root", type: "split", label: "Revenue", x: 400, y: 40, splitAddress: "", splitAmount: "0" },
+        { id: "ops", type: "split", label: "Agent Ops", x: 150, y: 200, splitAmount: "40", splitAddress: "" },
+        { id: "compute", type: "lock", label: "Compute Budget", x: 650, y: 200, lockAmount: "35", lockUntilDelta: 1008 },
+        { id: "safety", type: "lock", label: "Safety Reserve", x: 80, y: 380, lockAmount: "15", lockUntilDelta: 43200 },
+        { id: "profit", type: "hold", label: "Profit Vault", x: 300, y: 380 },
+        { id: "infra", type: "hold", label: "Infrastructure", x: 650, y: 380 },
+      ],
+      edges: [
+        { from: "root", to: "ops" },
+        { from: "root", to: "compute" },
+        { from: "root", to: "safety" },
+        { from: "ops", to: "profit" },
+        { from: "ops", to: "infra" },
+      ],
+    },
+  },
+  {
+    name: "Milestone Escrow",
+    description: "Client deposit → phased milestone unlocks → subcontractor cascades",
+    graph: {
+      nodes: [
+        { id: "root", type: "lock", label: "Client Deposit", x: 400, y: 40, lockAmount: "100", lockUntilDelta: 432 },
+        { id: "m1", type: "split", label: "Milestone 1", x: 200, y: 200, splitAmount: "40", splitAddress: "" },
+        { id: "m2", type: "split", label: "Milestone 2", x: 600, y: 200, splitAmount: "35", splitAddress: "" },
+        { id: "m3", type: "hold", label: "Final Payout", x: 400, y: 380 },
+      ],
+      edges: [
+        { from: "root", to: "m1" },
+        { from: "root", to: "m2" },
+        { from: "m1", to: "m3" },
+        { from: "m2", to: "m3" },
+      ],
+    },
+  },
+  {
     name: "Payroll Cascade",
     description: "Deposit → Lock runway + Split salaries → Developer payouts",
     graph: {
