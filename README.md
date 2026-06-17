@@ -42,11 +42,40 @@ Define a graph where each node is a FlowVault routing rule. Nodes connect with e
 └─────────────────────────────────────────┘
 ```
 
+## Why Cascade Is Different
+
+Most FlowVault apps use a single primitive: `Deposit → Lock`. Cascade chains all three.
+
+```
+Traditional FlowVault:          Cascade:
+
+  Deposit → Lock                  Deposit
+                                   ├─ Lock
+                                   ├─ Split
+                                   ├─ Hold
+                                   └─ More Cascades
+```
+
+Cascade transforms FlowVault primitives into recursive programmable money systems, enabling organizations to compose entirely new financial behaviors from reusable routing graphs.
+
+## Templates (6)
+
+| Template | Nodes | Structure |
+|---|---|---|
+| Startup Payroll | 7 | Revenue → Treasury lock 40% + Tax reserve 10% + Payroll split 50% → Eng / Designer / PM |
+| Creator Economy | 7 | Revenue → Creator 70% + Editor 15% + Community 10% + Reserve lock 5% → Music / Art |
+| AI Treasury | 6 | Revenue → Agent Ops split 40% + Compute lock 35% + Safety lock → Profit + Infra |
+| Milestone Escrow | 4 | Client deposit lock 100% → Milestone 1 / Milestone 2 → Final payout |
+| Payroll Cascade | 5 | Company deposit → 90-Day runway lock 60% + Salary split → Dev Lead / Frontend |
+| Treasury DAO | 5 | DAO Treasury → Core Reserve lock 50% + Ops split → Contributors / Emergency Fund |
+
+All templates are valid DAGs — single root, no cycles, topologically sorted — and load directly in the editor.
+
 ## Live Demo
 
-**[cascade-rust.vercel.app](https://cascade-rust.vercel.app)** — Landing page with scroll-reveal cascade animation
+**[cascade-rust.vercel.app](https://cascade-rust.vercel.app)** — Landing page with scroll-reveal cascade animation, "Why Cascade Is Different" comparison, and template gallery.
 
-**[cascade-rust.vercel.app/editor](https://cascade-rust.vercel.app/editor)** — Graph builder with FlowVault wallet integration
+**[cascade-rust.vercel.app/editor](https://cascade-rust.vercel.app/editor)** — Full graph builder with 6 pre-built templates, node property editor, FlowVault wallet integration, and cascade execution.
 
 ## Smart Contract
 
@@ -98,6 +127,7 @@ Open `http://localhost:3000/editor` — the full cascade builder with graph canv
 ├── components/
 │   ├── CascadeApp.tsx   # Landing page orchestration
 │   ├── EditorPage.tsx   # Graph editor + execute
+│   ├── GraphSVG.tsx     # Shared DAG visualization
 │   └── Preloader.tsx    # Typewriter preloader
 ├── lib/
 │   ├── graph-engine.ts  # DAG types, validation, topological sort
