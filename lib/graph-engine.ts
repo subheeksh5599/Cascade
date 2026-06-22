@@ -273,6 +273,71 @@ export const TEMPLATES: { name: string; description: string; graph: CascadeGraph
       ],
     },
   },
+  {
+    name: "Grant Distribution",
+    description: "Grant pool → Milestone-based unlocks → Team + Community split",
+    graph: {
+      nodes: [
+        { id: "root", type: "lock", label: "Grant Pool", x: 400, y: 40, lockAmount: "100", lockUntilDelta: 2880 },
+        { id: "milestone1", type: "split", label: "Phase 1 (30%)", x: 150, y: 200, splitAmount: "30", splitAddress: "" },
+        { id: "milestone2", type: "lock", label: "Phase 2 (40%)", x: 650, y: 200, lockAmount: "40", lockUntilDelta: 5760 },
+        { id: "team", type: "hold", label: "Build Team", x: 300, y: 380 },
+        { id: "audit", type: "hold", label: "Audit", x: 500, y: 380 },
+        { id: "community", type: "hold", label: "Community", x: 700, y: 380 },
+      ],
+      edges: [
+        { from: "root", to: "milestone1" },
+        { from: "root", to: "milestone2" },
+        { from: "milestone1", to: "team" },
+        { from: "milestone1", to: "audit" },
+        { from: "milestone2", to: "community" },
+      ],
+    },
+  },
+  {
+    name: "Subscription Reserve",
+    description: "Monthly revenue → Operations + Churn reserve + Growth fund + Profit",
+    graph: {
+      nodes: [
+        { id: "root", type: "split", label: "Monthly MRR", x: 400, y: 40, splitAddress: "", splitAmount: "0" },
+        { id: "ops", type: "hold", label: "Operations 40%", x: 100, y: 200 },
+        { id: "churn", type: "lock", label: "Churn Reserve 15%", x: 400, y: 200, lockAmount: "15", lockUntilDelta: 4320 },
+        { id: "growth", type: "split", label: "Growth Pool 30%", x: 700, y: 200, splitAmount: "30", splitAddress: "" },
+        { id: "profit", type: "hold", label: "Profit 15%", x: 250, y: 380 },
+        { id: "marketing", type: "hold", label: "Marketing", x: 550, y: 380 },
+        { id: "rd", type: "hold", label: "R&D", x: 800, y: 380 },
+      ],
+      edges: [
+        { from: "root", to: "ops" },
+        { from: "root", to: "churn" },
+        { from: "root", to: "growth" },
+        { from: "root", to: "profit" },
+        { from: "growth", to: "marketing" },
+        { from: "growth", to: "rd" },
+      ],
+    },
+  },
+  {
+    name: "Vesting Schedule",
+    description: "Token allocation → Cliff lock → Quarterly unlocks → Team wallets",
+    graph: {
+      nodes: [
+        { id: "root", type: "lock", label: "Token Pool", x: 400, y: 40, lockAmount: "100", lockUntilDelta: 21600 },
+        { id: "cliff", type: "lock", label: "1-Year Cliff", x: 400, y: 200, lockAmount: "25", lockUntilDelta: 210240 },
+        { id: "vested", type: "split", label: "Quarterly Unlock", x: 400, y: 360, splitAmount: "0", splitAddress: "" },
+        { id: "founder", type: "hold", label: "Founder", x: 200, y: 520 },
+        { id: "team_a", type: "hold", label: "Core Team A", x: 400, y: 520 },
+        { id: "team_b", type: "hold", label: "Core Team B", x: 600, y: 520 },
+      ],
+      edges: [
+        { from: "root", to: "cliff" },
+        { from: "cliff", to: "vested" },
+        { from: "vested", to: "founder" },
+        { from: "vested", to: "team_a" },
+        { from: "vested", to: "team_b" },
+      ],
+    },
+  },
 ];
 
 export function generateNodeId(): string {
