@@ -12,7 +12,7 @@ import {
 const USE_CASES = [
   {
     title: "Payroll Cascade",
-    desc: "One deposit → salaries distributed, runway locked, emergency reserves filled. Entire org paid in one transaction.",
+    desc: "One deposit — salaries distributed, runway locked, emergency reserves filled. Entire org paid in one transaction.",
     image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=800&fit=crop&q=80",
   },
   {
@@ -27,14 +27,15 @@ const USE_CASES = [
   },
   {
     title: "Milestone Escrow",
-    desc: "Client funds locked. Milestone met → portion released. Sub-milestones cascade to subcontractors.",
+    desc: "Client funds locked. Milestone met — portion released. Sub-milestones cascade to subcontractors.",
     image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&h=800&fit=crop&q=80",
   },
 ];
 
-const NODE_W = 140;
-const NODE_H = 56;
+const NODE_W = 160;
+const NODE_H = 60;
 
+/* ─── Scroll-driven graph reveal ─── */
 function RevealGraph({ rp, graph }: { rp: number; graph: CascadeGraph }) {
   const sorted = topologicalSort(graph);
   const total = sorted.length;
@@ -64,7 +65,7 @@ function RevealGraphSVG({ graph, sorted, visibleCount, stageProgress }: {
       <svg className="graph-svg" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet">
         <defs>
           <marker id="arrowhead-r" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-            <polygon points="0 0, 7 2.5, 0 5" fill="#0f766e" />
+            <polygon points="0 0, 7 2.5, 0 5" fill="rgba(255,255,255,0.3)" />
           </marker>
           <filter id="glow-r"><feGaussianBlur stdDeviation="3" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         </defs>
@@ -84,14 +85,14 @@ function RevealGraphSVG({ graph, sorted, visibleCount, stageProgress }: {
               <path
                 d={`M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`}
                 fill="none"
-                stroke={isCurrent ? "#0f766e" : "rgba(15,118,110,0.25)"}
-                strokeWidth={isCurrent ? 2.5 : 1.5}
+                stroke={isCurrent ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.12)"}
+                strokeWidth={isCurrent ? 2 : 1}
                 markerEnd="url(#arrowhead-r)"
                 opacity={isCurrent ? Math.min(1, stageProgress * 2) : edgeOpacity}
                 style={{ transition: "opacity 0.5s ease, stroke 0.5s ease" }}
               />
               {isCurrent && stageProgress > 0.3 && (
-                <circle r="4" fill="#0f766e" opacity={Math.min(1, stageProgress)}>
+                <circle r="4" fill="rgba(255,255,255,0.5)" opacity={Math.min(1, stageProgress)}>
                   <animateMotion dur="1.6s" repeatCount="indefinite"
                     path={`M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`} />
                 </circle>
@@ -108,26 +109,24 @@ function RevealGraphSVG({ graph, sorted, visibleCount, stageProgress }: {
           const nodeOpacity = isCurrent ? Math.min(1, stageProgress * 1.5) : 0.85;
           return (
             <g key={node.id} style={{ transition: "opacity 0.6s ease", opacity: nodeOpacity }}>
-              <rect x={node.x} y={node.y} width={NODE_W} height={NODE_H} rx={8}
-                fill={isCurrent ? "#0f766e" : "white"}
-                stroke="#0f766e"
-                strokeWidth={isCurrent ? 2.5 : 1.5}
+              <rect x={node.x} y={node.y} width={NODE_W} height={NODE_H} rx={10}
+                fill={isCurrent ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.03)"}
+                stroke={isCurrent ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.08)"}
+                strokeWidth={isCurrent ? 1.5 : 0.8}
                 filter={isCurrent ? "url(#glow-r)" : undefined}
-                style={{ transition: "fill 0.5s ease, stroke-width 0.5s ease" }} />
-              <text x={node.x + 14} y={node.y + 22}
-                fontFamily="Inter Tight,sans-serif" fontSize={11} fontWeight={700}
-                fill={isCurrent ? "white" : "#0f766e"}>
+                style={{ transition: "fill 0.5s ease, stroke 0.5s ease" }} />
+              <text x={node.x + NODE_W / 2} y={node.y + 22}
+                textAnchor="middle"
+                fontFamily="Inter, sans-serif" fontSize={11} fontWeight={500}
+                fill={isCurrent ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.35)"}>
                 {node.type.toUpperCase()}
               </text>
-              <text x={node.x + 14} y={node.y + 42}
-                fontFamily="Inter Tight,sans-serif" fontSize={13} fontWeight={600}
-                fill={isCurrent ? "white" : "#1a1720"}>
+              <text x={node.x + NODE_W / 2} y={node.y + 44}
+                textAnchor="middle"
+                fontFamily="Inter, sans-serif" fontSize={13} fontWeight={400}
+                fill={isCurrent ? "var(--bone)" : "rgba(255,255,255,0.5)"}>
                 {node.label}
               </text>
-              <text x={node.x + NODE_W - 14} y={node.y + 22}
-                fontFamily="Playfair Display,serif" fontSize={18} fontWeight={700}
-                fill={isCurrent ? "rgba(255,255,255,0.4)" : "rgba(15,118,110,0.3)"}
-                textAnchor="end">{order + 1}</text>
             </g>
           );
         })}
@@ -136,6 +135,7 @@ function RevealGraphSVG({ graph, sorted, visibleCount, stageProgress }: {
   );
 }
 
+/* ─── Step counter overlay ─── */
 function StepCounter({ rp, template }: { rp: number; template: { graph: CascadeGraph; name: string } }) {
   const sorted = topologicalSort(template.graph);
   const sortedNodes = sorted.map((id) => template.graph.nodes.find((n) => n.id === id)!);
@@ -170,6 +170,9 @@ function StepCounter({ rp, template }: { rp: number; template: { graph: CascadeG
   );
 }
 
+/* ───────────────────────────────────────────
+   CASCADE APP — Main page
+   ─────────────────────────────────────────── */
 export function CascadeApp() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -197,7 +200,7 @@ export function CascadeApp() {
   return (
     <>
       {loading && <Preloader text="Cascade" sub="Recursive Money Flow Graphs" onComplete={() => setLoading(false)} />}
-      <main className={`velar-main ${loading ? "velar-main--hidden" : "velar-main--visible"}`}>
+      <main className={`velar-main ${!loading ? "velar-main--visible" : ""}`}>
         <header className="topbar-fixed">
           <div className="brand"><span className="brand-name">Cascade</span></div>
           <WalletButton />
@@ -205,14 +208,19 @@ export function CascadeApp() {
 
         {/* ── Hero ── */}
         <section className="hero-statement">
+          <div className="hero-bg-orb" />
           <div className="hero-statement__inner">
-            <h1 className="fade-in">One deposit.<br />Every node fires.<br />The graph settles.</h1>
+            <h1 className="fade-in">
+              One deposit.<br />
+              Every node fires.<br />
+              <em>The graph settles.</em>
+            </h1>
             <p className="fade-in stagger-1">
               Cascade chains FlowVault vaults into a directed acyclic graph. Deposit USDCx at the root
               and a keeper automaton executes Lock, Split, and Hold at every downstream node in sequence.
-              No manual transfers. No "send me my share." One transaction triggers the entire cascade.
+              No manual transfers. No &ldquo;send me my share.&rdquo; One transaction triggers the entire cascade.
             </p>
-            <a href="/editor" className="btn-accent fade-in stagger-2" style={{ display: "inline-flex", marginTop: 24, textDecoration: "none" }}>
+            <a href="/editor" className="btn-accent fade-in stagger-2" style={{ display: "inline-flex", marginTop: 32 }}>
               Open Editor
             </a>
           </div>
@@ -228,15 +236,20 @@ export function CascadeApp() {
           </div>
         </section>
 
-        {/* ── Dark Statement: How It Works ── */}
+        {/* ── How It Works ── */}
         <section className="dark-statement">
           <div className="dark-statement__inner">
             <div className="dark-statement__text">
               <span className="dark-statement__eyebrow">How Cascade Works</span>
               <h3>A directed acyclic graph of FlowVault vaults. One deposit. Automated execution. On-chain settlement.</h3>
               <p>
-                Each node in the cascade is a FlowVault routing rule — <strong>Lock</strong> (time-bound escrow),
-                {" "}<strong>Split</strong> (instant routing to recipients), or <strong>Hold</strong> (liquid pass-through).
+                Each node in the cascade is a FlowVault routing rule —{" "}
+                <strong style={{ color: "rgba(255,255,255,0.6)", fontWeight: 400 }}>Lock</strong>{" "}
+                (time-bound escrow),{" "}
+                <strong style={{ color: "rgba(255,255,255,0.6)", fontWeight: 400 }}>Split</strong>{" "}
+                (instant routing to recipients), or{" "}
+                <strong style={{ color: "rgba(255,255,255,0.6)", fontWeight: 400 }}>Hold</strong>{" "}
+                (liquid pass-through).
                 A keeper automaton watches the Stacks blockchain. When a deposit lands, it configures the next
                 node's routing rules, deposits the cascaded funds, and repeats for every downstream node.
                 The entire graph settles without human intervention.
@@ -273,12 +286,15 @@ export function CascadeApp() {
 
         {/* ── Use Case Gallery ── */}
         <section className="gallery-section">
-          <div className="gallery-header"><h2>What You Can Cascade</h2><p className="gallery-header__sub">Every multi-step money flow becomes a single deposit.</p></div>
+          <div className="gallery-header">
+            <h2>What You Can Cascade</h2>
+            <p className="gallery-header__sub">Every multi-step money flow becomes a single deposit.</p>
+          </div>
           <div className="gallery-track gallery-track--visible">
             {USE_CASES.map((uc) => (
               <div key={uc.title} className="use-case-card">
                 <div className="use-case-card__media">
-                  <img src={uc.image} alt={uc.title} className="use-case-card__img" />
+                  <img src={uc.image} alt={uc.title} className="use-case-card__img" loading="lazy" />
                 </div>
                 <div className="use-case-card__body">
                   <strong>{uc.title}</strong>
@@ -329,14 +345,16 @@ export function CascadeApp() {
           <div className="cascade-execute__head">
             <h2>Ready to build?</h2>
             <p>Open the Cascade editor, define your graph, connect your wallet, and execute.</p>
-            <a href="/editor" className="btn-accent" style={{ display: "inline-flex", marginTop: 20, textDecoration: "none" }}>
+            <a href="/editor" className="btn-accent" style={{ display: "inline-flex", marginTop: 24 }}>
               Open Editor
             </a>
           </div>
         </section>
 
         <footer className="velar-footer">
-          <p className="footer-sub">Cascade &middot; Recursive Money Flow Graphs &middot; Built with FlowVault &middot; Lock &middot; Split &middot; Hold</p>
+          <p className="footer-sub">
+            Cascade &middot; Recursive Money Flow Graphs &middot; Lock &middot; Split &middot; Hold
+          </p>
         </footer>
       </main>
     </>
