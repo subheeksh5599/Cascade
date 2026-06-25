@@ -41,3 +41,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# vite build output
+/dist
+
+# brag outputs
+/brag-output*
+brag-output-*
