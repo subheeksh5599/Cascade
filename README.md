@@ -75,7 +75,7 @@ All templates are valid DAGs — single root, no cycles, topologically sorted �
 
 **[cascade-rust.vercel.app](https://cascade-rust.vercel.app)** — Landing page with scroll-reveal cascade animation, "Why Cascade Is Different" comparison, and template gallery.
 
-**[cascade-rust.vercel.app/editor](https://cascade-rust.vercel.app/editor)** — Full graph builder with 6 pre-built templates, node property editor, FlowVault wallet integration, and cascade execution.
+**[cascade-rust.vercel.app/editor](https://cascade-rust.vercel.app/#editor)** — Full graph builder with 6 pre-built templates, node property editor, FlowVault wallet integration, and cascade execution.
 
 ## Smart Contract
 
