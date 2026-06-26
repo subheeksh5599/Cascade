@@ -3,6 +3,14 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      keyframes: {
+        cascade: {
+          to: { strokeDashoffset: "-40" },
+        },
+      },
+      animation: {
+        cascade: "cascade 1.8s linear infinite",
+      },
       fontFamily: {
         zentry: ["zentry", "sans-serif"],
         general: ["general", "sans-serif"],

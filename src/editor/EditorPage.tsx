@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { type CascadeGraph, type CascadeNode, TEMPLATES, validateGraph, generateNodeId } from "./graph-engine";
-import { GraphSVG } from "./GraphSVG";
+import { GraphCanvas } from "./GraphCanvas";
 import type { NodeType } from "./graph-engine";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -84,7 +84,7 @@ export function EditorPage() {
 
           {/* Canvas */}
           <div style={{ flex: 1, minHeight: 360, border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, background: "rgba(255,255,255,0.02)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-            <GraphSVG graph={graph} activeNode={selectedNode} />
+            <GraphCanvas graph={graph} activeNode={selectedNode} onSelectNode={setSelectedNode} />
           </div>
 
           {/* Validation */}

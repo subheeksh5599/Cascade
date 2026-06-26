@@ -271,3 +271,9 @@ body {
     opacity: 0.8;
   }
 }
+
+@keyframes cascade {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
