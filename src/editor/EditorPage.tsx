@@ -4,6 +4,7 @@ import { GraphCanvas } from "./GraphCanvas";
 import { TxnModal } from "./TxnModal";
 import { useGraphCascade } from "./lib/useGraphCascade";
 import { tokenToMicro } from "flowvault-sdk";
+import { getHiroTxUrl } from "./lib/config";
 import type { NodeType } from "./graph-engine";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -210,9 +211,13 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
           {txLinks.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               {txLinks.map((tx, i) => (
-                <span key={i} className="text-[10px] font-mono text-slate-500 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded">
-                  Node {i + 1}: {tx}
-                </span>
+                <a key={i}
+                  href={getHiroTxUrl(tx)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-mono text-emerald-400/70 hover:text-emerald-300 bg-emerald-950/20 border border-emerald-900/30 px-3 py-1.5 rounded transition-colors">
+                  Node {i + 1}: {tx.slice(0, 10)}... &rarr;
+                </a>
               ))}
             </div>
           )}
