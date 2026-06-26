@@ -3,6 +3,7 @@ import { type CascadeGraph, type CascadeNode, TEMPLATES, validateGraph, generate
 import { GraphCanvas } from "./GraphCanvas";
 import { TxnModal } from "./TxnModal";
 import { useGraphCascade } from "./lib/useGraphCascade";
+import { tokenToMicro } from "flowvault-sdk";
 import type { NodeType } from "./graph-engine";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -50,16 +51,27 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
 
   const openExecuteModal = () => {
     const v = validateGraph(graph);
+    if (!walletAddress) {
+      setValidation({ valid: false, errors: ["Connect wallet before executing."] });
+      return;
+    }
     setValidation(v);
-    if (!v.valid || !walletAddress) return;
+    if (!v.valid) return;
     setShowTxnModal(true);
   };
 
   const executeCascade = () => {
     setShowTxnModal(false);
-    const amountMicro = BigInt(Math.floor(Number(depositInput) || 0));
-    if (amountMicro <= 0n) return;
-    cascade.execute(graph, amountMicro);
+    try {
+      const amountMicro = tokenToMicro(depositInput);
+      if (amountMicro <= 0n) {
+        setValidation({ valid: false, errors: ["Deposit amount must be greater than 0."] });
+        return;
+      }
+      cascade.execute(graph, amountMicro);
+    } catch (err) {
+      setValidation({ valid: false, errors: [`Invalid amount: ${err instanceof Error ? err.message : String(err)}`] });
+    }
   };
 
   const selectedNodeData = selectedNode ? graph.nodes.find((n) => n.id === selectedNode) : null;
@@ -127,10 +139,14 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
             {/* Execute */}
             <button
               onClick={openExecuteModal}
-              disabled={isRunning}
-              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-xs font-black px-5 py-2 rounded-lg transition-all shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] uppercase tracking-wider"
+              disabled={isRunning || !walletAddress}
+              className={`text-xs font-black px-5 py-2 rounded-lg transition-all uppercase tracking-wider ${
+                !walletAddress
+                  ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)]"
+              }`}
             >
-              {isRunning ? "Cascading..." : "Execute"}
+              {!walletAddress ? "Connect Wallet" : isRunning ? "Cascading..." : "Execute"}
             </button>
           </div>
 
@@ -196,6 +212,13 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
               {validation.errors.map((e, i) => <div key={i}>{e}</div>)}
             </div>
           )}
+
+          {/* Cascade execution error */}
+          {cascade.error && (
+            <div className="p-3 border border-red-900/30 rounded-lg bg-red-950/20 text-red-400 text-xs font-mono flex items-center gap-2">
+              <span className="text-base">!</span> {cascade.error}
+            </div>
+          )}
         </section>
 
         {/* Sidebar */}
@@ -232,17 +255,37 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
               {selectedNodeData.type === "split" && (
                 <>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] uppercase tracking-wider text-slate-500">Split Address</label>
-                    <input type="text" placeholder="ST..." value={selectedNodeData.splitAddress ?? ""} onChange={(e) => updateNode(selectedNode!, { splitAddress: e.target.value })}
-                      className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
-                  </div>
-                  <div className="flex flex-col gap-1">
                     <label className="text-[9px] uppercase tracking-wider text-slate-500">Split %</label>
                     <input type="number" min="0" max="100" value={selectedNodeData.splitAmount ?? ""} onChange={(e) => updateNode(selectedNode!, { splitAmount: e.target.value })}
                       className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
                   </div>
                 </>
               )}
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] uppercase tracking-wider text-slate-500">
+                  Destination Wallet
+                  <span className="text-emerald-400 ml-1">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder={selectedNodeData.type === "split" ? "ST... split destination" : "ST... recipient address"}
+                    value={selectedNodeData.walletAddress ?? selectedNodeData.splitAddress ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateNode(selectedNode!, { walletAddress: val, splitAddress: val });
+                    }}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 pr-8 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                  {((selectedNodeData.walletAddress || selectedNodeData.splitAddress) && (selectedNodeData.walletAddress?.length || selectedNodeData.splitAddress?.length || 0) >= 8) && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+                  )}
+                </div>
+                {(!selectedNodeData.walletAddress && !selectedNodeData.splitAddress) && (
+                  <span className="text-[8px] text-slate-600 mt-0.5">Enter a Stacks address for this node</span>
+                )}
+              </div>
             </div>
           ) : (
             <span className="text-xs text-slate-500">Select a node</span>

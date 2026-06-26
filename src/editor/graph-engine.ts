@@ -10,6 +10,7 @@ export interface CascadeNode {
   lockUntilDelta?: number;
   splitAddress?: string;
   splitAmount?: string;
+  walletAddress?: string;
 }
 
 export interface CascadeEdge {

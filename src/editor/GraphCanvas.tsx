@@ -94,6 +94,11 @@ export function GraphCanvas({ graph, activeNode, onSelectNode }: {
                     {node.lockAmount}%
                   </div>
                 )}
+                {(node.walletAddress || node.splitAddress) && (
+                  <div className="text-[8px] font-mono text-emerald-400/70 mt-1 bg-emerald-950/30 py-0.5 px-1 rounded truncate border border-emerald-900/20">
+                    {(node.walletAddress || node.splitAddress).slice(0, 7)}...
+                  </div>
+                )}
               </div>
             </div>
           );
