@@ -48,7 +48,7 @@ export function TxnModal({ isOpen, onClose, onConfirm, graph, depositAmount }) {
         </div>
 
         <div className="text-center text-[10px] text-slate-500 mb-4">
-          Estimated gas: <span className="text-white font-mono">~{(totalNodes * 0.012).toFixed(4)} STX</span>
+          Gas fee (paid in STX): <span className="text-white font-mono">~{(totalNodes * 0.012).toFixed(4)} STX</span>
         </div>
 
         <div className="flex gap-2">
