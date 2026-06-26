@@ -77,7 +77,7 @@ const Hero = () => {
               title="Open Editor"
               leftIcon={<TiLocationArrow />}
               containerClass="bg-yellow-300 flex-center gap-1"
-              href="https://github.com/subheeksh5599/Cascade"
+              href="#editor"
             />
           </div>
         </div>
