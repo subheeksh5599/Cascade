@@ -73,12 +73,14 @@ export function GraphCanvas({ graph, activeNode, onSelectNode }: {
               style={{ left: node.x, top: node.y, width: 148 }}>
               {/* Node Card */}
               <div className={`bg-slate-900/90 border shadow-xl rounded-xl p-3 text-center backdrop-blur-md ring-1 ring-white/5 transition-all duration-300
-                ${isActive ? "scale-105" : "hover:scale-[1.02]"}`}
+                ${isActive ? "scale-105" : "hover:scale-[1.02]"} ${!node.walletAddress && !node.splitAddress ? "border-l-red-500/30" : ""}`}
                 style={{
-                  borderColor: isActive ? colors.border : "rgba(51,65,85,0.8)",
+                  borderColor: isActive ? colors.border : (!node.walletAddress && !node.splitAddress ? "rgba(239,68,68,0.15)" : "rgba(51,65,85,0.8)"),
                   borderTopColor: colors.accent,
                   borderTopWidth: 2,
                   boxShadow: isActive ? `0 0 24px ${colors.border}` : "none",
+                  borderLeftWidth: !node.walletAddress && !node.splitAddress ? 2 : undefined,
+                  borderLeftColor: !node.walletAddress && !node.splitAddress ? "rgba(239,68,68,0.4)" : undefined,
                 }}>
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <span className="w-2 h-2 rounded-full animate-pulse"
@@ -97,6 +99,11 @@ export function GraphCanvas({ graph, activeNode, onSelectNode }: {
                 {(node.walletAddress || node.splitAddress) && (
                   <div className="text-[8px] font-mono text-emerald-400/70 mt-1 bg-emerald-950/30 py-0.5 px-1 rounded truncate border border-emerald-900/20">
                     {(node.walletAddress || node.splitAddress).slice(0, 7)}...
+                  </div>
+                )}
+                {!node.walletAddress && !node.splitAddress && (
+                  <div className="text-[8px] font-mono text-red-400/60 mt-1 bg-red-950/30 py-0.5 px-1 rounded border border-red-900/20">
+                    No wallet set
                   </div>
                 )}
               </div>

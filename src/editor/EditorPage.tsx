@@ -55,6 +55,17 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
       setValidation({ valid: false, errors: ["Connect wallet before executing."] });
       return;
     }
+    // Check all nodes have destination wallets
+    const missing = graph.nodes.filter(
+      (n) => !n.walletAddress && !n.splitAddress
+    );
+    if (missing.length > 0) {
+      setValidation({
+        valid: false,
+        errors: missing.map((n) => `"${n.label}" has no destination wallet. Select the node and enter a Stacks address.`),
+      });
+      return;
+    }
     setValidation(v);
     if (!v.valid) return;
     setShowTxnModal(true);

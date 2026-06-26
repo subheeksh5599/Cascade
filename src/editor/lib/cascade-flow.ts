@@ -51,7 +51,7 @@ export function calculateNodeAllocation(
       lockAmount: lockMicro,
       splitAmount: 0n,
       holdAmount: totalMicro - lockMicro,
-      splitAddress: "",
+      splitAddress: node.walletAddress ?? node.splitAddress ?? "",
     };
   }
 
@@ -64,7 +64,7 @@ export function calculateNodeAllocation(
       lockAmount: lockMicro,
       splitAmount: splitMicro,
       holdAmount: totalMicro - lockMicro - splitMicro,
-      splitAddress: node.splitAddress ?? "",
+      splitAddress: node.walletAddress ?? node.splitAddress ?? "",
     };
   }
 
@@ -72,7 +72,7 @@ export function calculateNodeAllocation(
     lockAmount: 0n,
     splitAmount: 0n,
     holdAmount: totalMicro,
-    splitAddress: "",
+    splitAddress: node.walletAddress ?? "",
   };
 }
 
