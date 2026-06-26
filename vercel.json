@@ -1,0 +1,7 @@
+{
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . :!editor-app"
+}

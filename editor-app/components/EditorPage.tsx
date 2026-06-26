@@ -121,7 +121,17 @@ export function EditorPage() {
               <div className="ce-deposit-row">
                 <input type="number" min="0" step="0.000001" inputMode="decimal"
                   value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)}
-                  className="ce-amount" />
+                  className="ce-amount"
+                  style={{
+                    fontFamily: "'SF Mono','Fira Code','JetBrains Mono',monospace",
+                    fontSize: "clamp(32px,5vw,56px)",
+                    fontWeight: 800,
+                    letterSpacing: "-0.02em",
+                    background: "linear-gradient(to right, #ffffff, #e2e8f0, #34d399)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    filter: "drop-shadow(0 0 12px rgba(52,211,153,0.25))",
+                  }} />
                 <span className="ce-currency">USDCx</span>
               </div>
             </div>
@@ -203,8 +213,20 @@ export function EditorPage() {
             {graph.nodes.map((n) => (
               <button key={n.id}
                 className={`node-chip ${selectedNode === n.id ? "node-chip--selected" : ""}`}
-                onClick={() => setSelectedNode(n.id)}>
-                <span className={`node-chip__glyph node-chip__glyph--${n.type}`}>{n.type[0].toUpperCase()}</span>
+                onClick={() => setSelectedNode(n.id)}
+                style={{
+                  borderColor: selectedNode === n.id
+                    ? n.type === "lock" ? "rgba(245,158,11,0.4)" : n.type === "split" ? "rgba(99,102,241,0.45)" : "rgba(6,182,212,0.4)"
+                    : undefined
+                }}>
+                <span className="node-chip__glyph"
+                  style={{
+                    background: n.type === "lock" ? "rgba(245,158,11,0.12)" : n.type === "split" ? "rgba(99,102,241,0.12)" : "rgba(6,182,212,0.1)",
+                    borderColor: n.type === "lock" ? "rgba(245,158,11,0.3)" : n.type === "split" ? "rgba(99,102,241,0.35)" : "rgba(6,182,212,0.25)",
+                    color: n.type === "lock" ? "#f59e0b" : n.type === "split" ? "#6366f1" : "#06b6d4",
+                  }}>
+                  {n.type[0].toUpperCase()}
+                </span>
                 <span className="node-chip__label">{n.label}</span>
               </button>
             ))}
