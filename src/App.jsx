@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { connect, disconnect } from "@stacks/connect";
 import About from "./components/About";
 import Hero from "./components/Hero";
@@ -6,8 +6,9 @@ import NavBar from "./components/Navbar";
 import Features from "./components/Features";
 import Story from "./components/Story";
 import Contact from "./components/Contact";
-import { EditorPage } from "./editor/EditorPage";
 import { FLOWVAULT_NETWORK } from "./editor/lib/config";
+
+const EditorPage = lazy(() => import("./editor/EditorPage").then(m => ({ default: m.EditorPage })));
 
 function App() {
   const [page, setPage] = useState(() => window.location.hash === "#editor" ? "editor" : "home");
@@ -34,7 +35,15 @@ function App() {
   }, []);
 
   if (page === "editor") {
-    return <EditorPage walletAddress={walletAddress} onNavigateHome={() => window.location.hash = ""} />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="text-emerald-400 font-mono text-sm animate-pulse">Loading Editor...</div>
+        </div>
+      }>
+        <EditorPage walletAddress={walletAddress} onNavigateHome={() => window.location.hash = ""} />
+      </Suspense>
+    );
   }
 
   return (
