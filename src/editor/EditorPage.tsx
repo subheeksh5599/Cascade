@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { type CascadeGraph, type CascadeNode, TEMPLATES, validateGraph, generateNodeId, topologicalSort, findRoots } from "./graph-engine";
 import { GraphCanvas } from "./GraphCanvas";
+import { TxnModal } from "./TxnModal";
 import type { NodeType } from "./graph-engine";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -33,6 +34,7 @@ export function EditorPage() {
   const [steps, setSteps] = useState<CascadeStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [txLinks, setTxLinks] = useState<string[]>([]);
+  const [showTxnModal, setShowTxnModal] = useState(false);
 
   const runValidate = useCallback(() => setValidation(validateGraph(graph)), [graph]);
   useEffect(() => { runValidate(); }, [runValidate]);
@@ -60,11 +62,15 @@ export function EditorPage() {
     setGraph((g) => ({ ...g, edges: [...g.edges, { from: selectedNode, to: target.id }] }));
   }, [selectedNode, graph]);
 
-  const executeCascade = () => {
+  const openExecuteModal = () => {
     const v = validateGraph(graph);
     setValidation(v);
     if (!v.valid) return;
+    setShowTxnModal(true);
+  };
 
+  const executeCascade = () => {
+    setShowTxnModal(false);
     const sorted = topologicalSort(graph);
     const root = findRoots(graph)[0];
     const initSteps: CascadeStep[] = sorted.map((id) => {
@@ -161,7 +167,7 @@ export function EditorPage() {
 
             {/* Execute */}
             <button
-              onClick={executeCascade}
+              onClick={openExecuteModal}
               disabled={isRunning}
               className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-xs font-black px-5 py-2 rounded-lg transition-all shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] uppercase tracking-wider"
             >
@@ -301,6 +307,14 @@ export function EditorPage() {
           </div>
         </aside>
       </main>
+
+      <TxnModal
+        isOpen={showTxnModal}
+        onClose={() => setShowTxnModal(false)}
+        onConfirm={executeCascade}
+        graph={graph}
+        depositAmount={depositInput}
+      />
     </div>
   );
 }
