@@ -80,6 +80,14 @@ export function generateNodeId(): string {
   return `n_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function getChildren(nodeId: string, graph: CascadeGraph): string[] {
+  return graph.edges.filter((e) => e.from === nodeId).map((e) => e.to);
+}
+
+export function getNodeById(id: string, graph: CascadeGraph): CascadeNode | undefined {
+  return graph.nodes.find((n) => n.id === id);
+}
+
 export const TEMPLATES: { name: string; description: string; graph: CascadeGraph }[] = [
   { name: "Startup Payroll", description: "Revenue → Treasury lock + Tax reserve + Team payroll", graph: { nodes: [
     { id: "root", type: "split", label: "Revenue", x: 400, y: 40, splitAddress: "", splitAmount: "0" },

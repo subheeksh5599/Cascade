@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { type CascadeGraph, type CascadeNode, TEMPLATES, validateGraph, generateNodeId, topologicalSort, findRoots } from "./graph-engine";
+import { type CascadeGraph, type CascadeNode, TEMPLATES, validateGraph, generateNodeId } from "./graph-engine";
 import { GraphCanvas } from "./GraphCanvas";
 import { TxnModal } from "./TxnModal";
+import { useGraphCascade } from "./lib/useGraphCascade";
 import type { NodeType } from "./graph-engine";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -10,31 +11,16 @@ const TYPE_COLORS: Record<string, string> = {
   hold: "#06b6d4",
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  lock: "Lock Rule",
-  split: "Split Rule",
-  hold: "Hold Rule",
-};
-
-interface CascadeStep {
-  nodeId: string;
-  label: string;
-  status: "pending" | "strategy" | "deposit" | "confirming" | "done" | "error";
-}
-
-export function EditorPage() {
+export function EditorPage({ walletAddress, onNavigateHome }) {
   const [graph, setGraph] = useState<CascadeGraph>(TEMPLATES[0].graph);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [nodeTypeAdd, setNodeTypeAdd] = useState<NodeType>("lock");
   const [depositInput, setDepositInput] = useState("500000");
   const [validation, setValidation] = useState<{ valid: boolean; errors: string[] }>({ valid: true, errors: [] });
   const [activeTemplate, setActiveTemplate] = useState(0);
-
-  // Cascade execution state
-  const [steps, setSteps] = useState<CascadeStep[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [txLinks, setTxLinks] = useState<string[]>([]);
   const [showTxnModal, setShowTxnModal] = useState(false);
+
+  const cascade = useGraphCascade(walletAddress);
 
   const runValidate = useCallback(() => setValidation(validateGraph(graph)), [graph]);
   useEffect(() => { runValidate(); }, [runValidate]);
@@ -65,50 +51,23 @@ export function EditorPage() {
   const openExecuteModal = () => {
     const v = validateGraph(graph);
     setValidation(v);
-    if (!v.valid) return;
+    if (!v.valid || !walletAddress) return;
     setShowTxnModal(true);
   };
 
   const executeCascade = () => {
     setShowTxnModal(false);
-    const sorted = topologicalSort(graph);
-    const root = findRoots(graph)[0];
-    const initSteps: CascadeStep[] = sorted.map((id) => {
-      const node = graph.nodes.find((n) => n.id === id)!;
-      return { nodeId: id, label: node.label, status: id === root ? "deposit" : "pending" };
-    });
-
-    setSteps(initSteps);
-    setTxLinks([]);
-    setIsRunning(true);
-
-    // Simulate cascade execution step by step
-    sorted.forEach((id, index) => {
-      setTimeout(() => {
-        setSteps((prev) =>
-          prev.map((s) => (s.nodeId === id ? { ...s, status: index === 0 ? "deposit" : "strategy" } : s))
-        );
-      }, index * 600);
-
-      setTimeout(() => {
-        setSteps((prev) =>
-          prev.map((s) => (s.nodeId === id ? { ...s, status: "confirming" } : s))
-        );
-        setTxLinks((prev) => [...prev, `0x${Math.random().toString(16).slice(2, 10)}...${Math.random().toString(16).slice(2, 6)}`]);
-      }, index * 600 + 300);
-
-      setTimeout(() => {
-        setSteps((prev) =>
-          prev.map((s) => (s.nodeId === id ? { ...s, status: "done" } : s))
-        );
-        if (index === sorted.length - 1) setIsRunning(false);
-      }, index * 600 + 500);
-    });
+    const amountMicro = BigInt(Math.floor(Number(depositInput) || 0));
+    if (amountMicro <= 0n) return;
+    cascade.execute(graph, amountMicro);
   };
 
   const selectedNodeData = selectedNode ? graph.nodes.find((n) => n.id === selectedNode) : null;
-  const activeStep = steps.find((s) => s.status !== "pending" && s.status !== "done")?.nodeId ?? null;
-  const hasSteps = steps.length > 0;
+  const activeStep = cascade.steps.find((s) => s.status !== "pending" && s.status !== "done")?.nodeId ?? null;
+  const hasSteps = cascade.steps.length > 0;
+  const isRunning = cascade.status === "running";
+  const steps = cascade.steps;
+  const txLinks = cascade.txLinks;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
@@ -118,7 +77,7 @@ export function EditorPage() {
           CASCADE<span className="text-emerald-400">.</span>
         </a>
         <div className="flex items-center gap-5">
-          <a href="/" className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider hover:text-white transition-colors">Exit Editor</a>
+          <button onClick={onNavigateHome} className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider hover:text-white transition-colors">Exit Editor</button>
         </div>
       </header>
 
@@ -179,7 +138,7 @@ export function EditorPage() {
           <div className="flex items-center gap-2 flex-wrap">
             {TEMPLATES.map((t, i) => (
               <button key={t.name}
-                onClick={() => { setGraph(t.graph); setSteps([]); setTxLinks([]); setSelectedNode(null); setActiveTemplate(i); }}
+                onClick={() => { setGraph(t.graph); setSelectedNode(null); setActiveTemplate(i); }}
                 className={`border text-[10px] font-mono px-2.5 py-1.5 rounded transition-all whitespace-nowrap ${
                   i === activeTemplate
                     ? "border-emerald-500/40 bg-emerald-950/30 text-emerald-400"
