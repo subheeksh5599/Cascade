@@ -2,9 +2,9 @@ import { topologicalSort } from "./graph-engine";
 import type { CascadeGraph } from "./graph-engine";
 
 const TYPE_COLORS: Record<string, { accent: string; bg: string; border: string; label: string; icon: string }> = {
-  lock:  { accent: "#f59e0b", bg: "rgba(245,158,11,0.06)",  border: "rgba(245,158,11,0.35)",  label: "amber",   icon: "🔒" },
-  split: { accent: "#6366f1", bg: "rgba(99,102,241,0.06)",   border: "rgba(99,102,241,0.4)",   label: "indigo",  icon: "🔀" },
-  hold:  { accent: "#06b6d4", bg: "rgba(6,182,212,0.05)",    border: "rgba(6,182,212,0.25)",   label: "cyan",    icon: "🛑" },
+  lock:  { accent: "#f59e0b", bg: "rgba(245,158,11,0.06)",  border: "rgba(245,158,11,0.35)",  label: "amber",   icon: "LOCK" },
+  split: { accent: "#6366f1", bg: "rgba(99,102,241,0.06)",   border: "rgba(99,102,241,0.4)",   label: "indigo",  icon: "SPLIT" },
+  hold:  { accent: "#06b6d4", bg: "rgba(6,182,212,0.05)",    border: "rgba(6,182,212,0.25)",   label: "cyan",    icon: "HOLD" },
 };
 
 export function GraphCanvas({ graph, activeNode, onSelectNode }: {
