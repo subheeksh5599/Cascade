@@ -9,33 +9,9 @@ import {
   topologicalSort,
 } from "@/lib/graph-engine";
 
-const USE_CASES = [
-  {
-    title: "Payroll Cascade",
-    desc: "One deposit — salaries distributed, runway locked, emergency reserves filled. Entire org paid in one transaction.",
-    image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=800&fit=crop&q=80",
-  },
-  {
-    title: "DAO Treasury",
-    desc: "Community funds auto-route to working groups, core reserves, and contributor pools. Governance enforced on-chain.",
-    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&h=800&fit=crop&q=80",
-  },
-  {
-    title: "Revenue Splits",
-    desc: "Product revenue split across team, investors, and ops — recursively. No spreadsheet. No manual transfers.",
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=800&fit=crop&q=80",
-  },
-  {
-    title: "Milestone Escrow",
-    desc: "Client funds locked. Milestone met — portion released. Sub-milestones cascade to subcontractors.",
-    image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&h=800&fit=crop&q=80",
-  },
-];
-
 const NODE_W = 160;
 const NODE_H = 60;
 
-/* ─── Scroll-driven graph reveal ─── */
 function RevealGraph({ rp, graph }: { rp: number; graph: CascadeGraph }) {
   const sorted = topologicalSort(graph);
   const total = sorted.length;
@@ -43,6 +19,7 @@ function RevealGraph({ rp, graph }: { rp: number; graph: CascadeGraph }) {
   const currentStage = Math.min(total, Math.floor(rp / stageStep));
   const stageProgress = Math.min(1, (rp - currentStage * stageStep) / stageStep);
   const visibleCount = Math.max(0, Math.min(total, currentStage + (stageProgress > 0.5 ? 1 : 0)));
+
   if (rp >= 0.99) {
     return <RevealGraphSVG graph={graph} sorted={sorted} visibleCount={total} stageProgress={1} />;
   }
@@ -135,7 +112,6 @@ function RevealGraphSVG({ graph, sorted, visibleCount, stageProgress }: {
   );
 }
 
-/* ─── Step counter overlay ─── */
 function StepCounter({ rp, template }: { rp: number; template: { graph: CascadeGraph; name: string } }) {
   const sorted = topologicalSort(template.graph);
   const sortedNodes = sorted.map((id) => template.graph.nodes.find((n) => n.id === id)!);
@@ -161,18 +137,15 @@ function StepCounter({ rp, template }: { rp: number; template: { graph: CascadeG
         {rp >= 0.99
           ? `All ${total} nodes executed. The entire cascade settles on-chain.`
           : currentIdx === 0
-            ? "The root deposit lands. The keeper configures this node's Lock and Split rules via FlowVault."
+            ? "The root deposit lands. The keeper configures this node via FlowVault."
             : currentIdx < total - 1
-              ? `Cascading to the next node. Funds from "${sortedNodes[currentIdx - 1]?.label}" flow to "${sortedNodes[currentIdx]?.label}".`
+              ? `Cascading to the next node. Funds flow from "${sortedNodes[currentIdx - 1]?.label}" to "${sortedNodes[currentIdx]?.label}".`
               : "The final leaf node receives its allocation. The graph is fully settled."}
       </p>
     </>
   );
 }
 
-/* ───────────────────────────────────────────
-   CASCADE APP — Main page
-   ─────────────────────────────────────────── */
 export function CascadeApp() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -206,7 +179,6 @@ export function CascadeApp() {
           <WalletButton />
         </header>
 
-        {/* ── Hero ── */}
         <section className="hero-statement">
           <div className="hero-bg-orb" />
           <div className="hero-statement__inner">
@@ -216,9 +188,9 @@ export function CascadeApp() {
               <em>The graph settles.</em>
             </h1>
             <p className="fade-in stagger-1">
-              Cascade chains FlowVault vaults into a directed acyclic graph. Deposit USDCx at the root
-              and a keeper automaton executes Lock, Split, and Hold at every downstream node in sequence.
-              No manual transfers. No &ldquo;send me my share.&rdquo; One transaction triggers the entire cascade.
+              Cascade chains FlowVault vaults into a DAG. Deposit USDCx at the root
+              and the keeper executes Lock, Split, and Hold at every downstream node.
+              Each execution step produces a verifiable state witness.
             </p>
             <a href="/editor" className="btn-accent fade-in stagger-2" style={{ display: "inline-flex", marginTop: 32 }}>
               Open Editor
@@ -226,7 +198,6 @@ export function CascadeApp() {
           </div>
         </section>
 
-        {/* ── Scroll Reveal: Step-by-Step Cascade ── */}
         <section className="building-reveal" ref={revealRef}>
           <div className="building-reveal__sticky">
             <div className="building-reveal__statement">
@@ -236,27 +207,21 @@ export function CascadeApp() {
           </div>
         </section>
 
-        {/* ── How It Works ── */}
         <section className="dark-statement">
           <div className="dark-statement__inner">
             <div className="dark-statement__text">
               <span className="dark-statement__eyebrow">How Cascade Works</span>
-              <h3>A directed acyclic graph of FlowVault vaults. One deposit. Automated execution. On-chain settlement.</h3>
+              <h3>A directed acyclic graph of FlowVault vaults. One deposit. Keeper-automated execution. Verifiable settlement.</h3>
               <p>
-                Each node in the cascade is a FlowVault routing rule —{" "}
-                <strong style={{ color: "rgba(255,255,255,0.6)", fontWeight: 400 }}>Lock</strong>{" "}
-                (time-bound escrow),{" "}
-                <strong style={{ color: "rgba(255,255,255,0.6)", fontWeight: 400 }}>Split</strong>{" "}
-                (instant routing to recipients), or{" "}
-                <strong style={{ color: "rgba(255,255,255,0.6)", fontWeight: 400 }}>Hold</strong>{" "}
-                (liquid pass-through).
-                A keeper automaton watches the Stacks blockchain. When a deposit lands, it configures the next
-                node's routing rules, deposits the cascaded funds, and repeats for every downstream node.
-                The entire graph settles without human intervention.
+                Each node is a FlowVault routing rule: Lock (time-bound escrow), Split
+                (routing to recipients), or Hold (liquid pass-through). The keeper
+                resolves the cascade deterministically — given the graph and on-chain
+                state, anyone can compute the same next step. Every execution produces
+                a state witness provably linked to the graph hash.
               </p>
               <div className="dark-statement__tags">
-                <span>DAG: Topological Order</span>
-                <span>Keeper: Automation Engine</span>
+                <span>Deterministic Keeper</span>
+                <span>Execution Witnesses</span>
                 <span>FlowVault: Lock · Split · Hold</span>
               </div>
             </div>
@@ -272,40 +237,6 @@ export function CascadeApp() {
           </div>
         </section>
 
-        {/* ── Stats ── */}
-        <section className="stats-band">
-          <div className="stats-band__inner">
-            {[{ value: 3, suffix: "", label: "Primitives" }, { value: 2, suffix: "s", label: "Avg Cascade Settle" }, { value: 100, suffix: "%", label: "On-Chain Execution" }, { value: 0, suffix: "ms", label: "Keeper Latency" }].map((s) => (
-              <div key={s.label} className="stats-band__item">
-                <span className="stat-num">{s.value}{s.suffix}</span>
-                <span className="stats-band__label">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Use Case Gallery ── */}
-        <section className="gallery-section">
-          <div className="gallery-header">
-            <h2>What You Can Cascade</h2>
-            <p className="gallery-header__sub">Every multi-step money flow becomes a single deposit.</p>
-          </div>
-          <div className="gallery-track gallery-track--visible">
-            {USE_CASES.map((uc) => (
-              <div key={uc.title} className="use-case-card">
-                <div className="use-case-card__media">
-                  <img src={uc.image} alt={uc.title} className="use-case-card__img" loading="lazy" />
-                </div>
-                <div className="use-case-card__body">
-                  <strong>{uc.title}</strong>
-                  <p>{uc.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Why Cascade Is Different ── */}
         <section className="diff-section">
           <div className="diff-section__inner">
             <h2>Why Cascade Is Different</h2>
@@ -324,27 +255,26 @@ export function CascadeApp() {
                 <div className="diff-flow diff-flow--multi">
                   <span className="diff-flow__node">Deposit</span>
                   <div className="diff-flow__branches">
-                    <span className="diff-flow__node">&boxur; Lock</span>
-                    <span className="diff-flow__node">&boxur; Split</span>
-                    <span className="diff-flow__node">&boxur; Hold</span>
-                    <span className="diff-flow__node">&boxur; More Cascades</span>
+                    <span className="diff-flow__node">Lock</span>
+                    <span className="diff-flow__node">Split</span>
+                    <span className="diff-flow__node">Hold</span>
+                    <span className="diff-flow__node">More Cascades</span>
                   </div>
                 </div>
-                <p className="diff-card__desc">All three primitives. Recursive DAG. Fully automated.</p>
+                <p className="diff-card__desc">All three primitives. DAG composition. Deterministically verifiable.</p>
               </div>
             </div>
             <p className="diff-section__tagline">
-              Cascade transforms FlowVault primitives into recursive programmable money systems,
-              enabling organizations to compose entirely new financial behaviors from reusable routing graphs.
+              Cascade turns FlowVault primitives into composable, verifiable money routing graphs.
+              Publish a cascade once — others can compose it as a node in their own graph.
             </p>
           </div>
         </section>
 
-        {/* ── CTA ── */}
         <section className="cascade-execute">
           <div className="cascade-execute__head">
             <h2>Ready to build?</h2>
-            <p>Open the Cascade editor, define your graph, connect your wallet, and execute.</p>
+            <p>Open the editor, define your graph, connect your wallet, and execute. Every step produces a verifiable witness.</p>
             <a href="/editor" className="btn-accent" style={{ display: "inline-flex", marginTop: 24 }}>
               Open Editor
             </a>

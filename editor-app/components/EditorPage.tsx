@@ -6,25 +6,18 @@ import { useStacksWallet } from "@/hooks/useStacksWallet";
 import { useGraphCascade } from "@/hooks/useGraphCascade";
 import { GraphSVG } from "@/components/GraphSVG";
 import { getHiroTxUrl } from "@/lib/config";
+import { hashGraph } from "@/lib/keeper";
 import {
   type CascadeGraph,
   type CascadeNode,
   TEMPLATES,
   validateGraph,
   generateNodeId,
+  findRoots,
 } from "@/lib/graph-engine";
 import { tokenToMicro } from "flowvault-sdk";
 
 type NodeTypeStr = "lock" | "split" | "hold";
-
-const STEP_ICONS: Record<string, string> = {
-  pending: "",
-  strategy: "",
-  confirming: "",
-  deposit: "",
-  done: "\u2713",
-  error: "\u2717",
-};
 
 export function EditorPage() {
   const [graph, setGraph] = useState<CascadeGraph>(TEMPLATES[0].graph);
@@ -33,12 +26,20 @@ export function EditorPage() {
   const [depositAmount, setDepositAmount] = useState("500000");
   const [validation, setValidation] = useState<{ valid: boolean; errors: string[] }>({ valid: true, errors: [] });
   const [activeTemplate, setActiveTemplate] = useState(0);
+  const [computedHash, setComputedHash] = useState<string>("");
+  const [published, setPublished] = useState(false);
 
   const wallet = useStacksWallet();
   const cascade = useGraphCascade(wallet.address);
 
   const runValidate = useCallback(() => setValidation(validateGraph(graph)), [graph]);
   useEffect(() => { runValidate(); }, [runValidate]);
+
+  useEffect(() => {
+    if (validation.valid) {
+      setComputedHash(hashGraph(graph));
+    }
+  }, [graph, validation.valid]);
 
   const updateNode = useCallback((id: string, updates: Partial<CascadeNode>) => {
     setGraph((g) => ({ ...g, nodes: g.nodes.map((n) => (n.id === id ? { ...n, ...updates } : n)) }));
@@ -49,7 +50,7 @@ export function EditorPage() {
     const id = generateNodeId();
     setGraph((g) => ({
       ...g,
-      nodes: [...g.nodes, { id, type: nodeTypeAdd, label: `Node ${g.nodes.length + 1}`, x: 435, y: lastY, lockAmount: nodeTypeAdd === "lock" ? "50" : "0", lockUntilDelta: 144, splitAddress: "", splitAmount: nodeTypeAdd === "split" ? "10" : "0" }],
+      nodes: [...g.nodes, { id, type: nodeTypeAdd, label: `${nodeTypeAdd[0].toUpperCase()}${nodeTypeAdd.slice(1)} ${g.nodes.length + 1}`, x: 435, y: lastY, lockAmount: nodeTypeAdd === "lock" ? "50" : "0", lockUntilDelta: 144, splitAddress: "", splitAmount: nodeTypeAdd === "split" ? "10" : "0" }],
     }));
     setSelectedNode(id);
   }, [nodeTypeAdd, graph.nodes]);
@@ -65,18 +66,21 @@ export function EditorPage() {
   const running = cascade.status === "running";
   const done = cascade.status === "done";
   const hasSteps = cascade.steps.length > 0;
+  const rootLabel = findRoots(graph).length === 1 ? findRoots(graph)[0] : null;
 
   return (
     <main className="editor-page">
       <header className="topbar-fixed">
         <div className="brand"><a href="/" className="brand-name">Cascade</a></div>
-        <nav className="topbar-nav"><a href="/" className="nav-link">Home</a><span className="nav-link active">Editor</span></nav>
+        <nav className="topbar-nav">
+          <a href="/" className="nav-link">Home</a>
+          <span className="nav-link active">Editor</span>
+        </nav>
         <WalletButton />
       </header>
 
       <div className="editor-layout">
         <div className="editor-main">
-          {/* Toolbar */}
           <div className="editor-toolbar">
             <div className="toolbar-group">
               <span className="editor-toolbar-label">Add node:</span>
@@ -95,18 +99,16 @@ export function EditorPage() {
             </div>
           </div>
 
-          {/* Graph canvas */}
           <div className="editor-canvas">
             <GraphSVG graph={graph} activeNode={activeNode} cascadeDone={done} />
           </div>
 
-          {/* Execution progress */}
           {hasSteps && (
             <div className="editor-progress">
               {cascade.steps.map((step, i) => (
                 <div key={step.nodeId}
                   className={`ce-step ce-step--${step.status} ${step.status === "deposit" || step.status === "confirming" ? "ce-step--live" : ""}`}>
-                  <span className="ce-step__order">{STEP_ICONS[step.status] || i + 1}</span>
+                  <span className="ce-step__order">{step.status === "done" ? "\u2713" : step.status === "error" ? "\u2717" : i + 1}</span>
                   <span className="ce-step__label">{step.label}</span>
                   <span className="ce-step__status">{step.status}</span>
                 </div>
@@ -114,7 +116,6 @@ export function EditorPage() {
             </div>
           )}
 
-          {/* Actions */}
           <div className="editor-actions">
             <div className="editor-deposit">
               <span className="ce-label">Root Deposit</span>
@@ -137,15 +138,27 @@ export function EditorPage() {
             </div>
 
             {!validation.valid && (
-              <div className="status-panel error">{validation.errors.map((e, i) => <div key={i}>{e}</div>)}</div>
+              <div className="status-panel error">
+                {validation.errors.map((e, i) => <div key={i}>{e}</div>)}
+              </div>
             )}
 
             <button className="btn-accent" onClick={handleExecute}
               disabled={!wallet.isConnected || running}>
-              {running ? "Cascading..." : done ? "\u2713 Complete" : "Execute Cascade"}
+              {running ? "Cascading..." : done ? "Complete" : "Execute Cascade"}
             </button>
 
             {cascade.error && <div className="status-panel error">{cascade.error}</div>}
+
+            {cascade.graphHash && done && (
+              <div className="status-panel" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", padding: "12px 16px", borderRadius: 8, marginTop: 12 }}>
+                <div style={{ fontSize: 12, color: "var(--bone)", marginBottom: 4 }}>Graph Hash</div>
+                <code style={{ color: "#34d399", fontSize: 13 }}>{cascade.graphHash}</code>
+                <div style={{ fontSize: 11, color: "var(--bone)", marginTop: 6 }}>
+                  {cascade.witnesses.length} execution witnesses generated. Verifiable on-chain.
+                </div>
+              </div>
+            )}
 
             {cascade.txLinks.length > 0 && (
               <div className="tx-links">
@@ -159,7 +172,6 @@ export function EditorPage() {
           </div>
         </div>
 
-        {/* Sidebar */}
         <aside className="editor-sidebar">
           <h3>Node Properties</h3>
           {selectedNode && graph.nodes.find((n) => n.id === selectedNode) ? (
@@ -206,6 +218,13 @@ export function EditorPage() {
             </div>
           ) : (
             <span className="text-muted" style={{ fontSize: 12 }}>Select a node in the graph</span>
+          )}
+
+          {computedHash && validation.valid && (
+            <div style={{ marginTop: 20, padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ fontSize: 11, color: "var(--bone)", marginBottom: 4 }}>Graph Hash</div>
+              <code style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", wordBreak: "break-all" }}>{computedHash}</code>
+            </div>
           )}
 
           <div className="node-list">

@@ -145,6 +145,10 @@ export function getChildren(nodeId: string, graph: CascadeGraph): string[] {
   return graph.edges.filter((e) => e.from === nodeId).map((e) => e.to);
 }
 
+export function getParents(nodeId: string, graph: CascadeGraph): string[] {
+  return graph.edges.filter((e) => e.to === nodeId).map((e) => e.from);
+}
+
 export function getNodeById(id: string, graph: CascadeGraph): CascadeNode | undefined {
   return graph.nodes.find((n) => n.id === id);
 }
