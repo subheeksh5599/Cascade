@@ -77,16 +77,6 @@ All templates are valid DAGs — single root, no cycles, topologically sorted �
 
 **[cascade-rust.vercel.app/editor](https://cascade-rust.vercel.app/editor)** — Full graph builder with 10 pre-built templates, node property editor, FlowVault wallet integration, and cascade execution.
 
-### Landing Page
-
-![Cascade Landing Page](public/images/landing.png)
-
-### Graph Editor
-
-![Cascade Graph Editor](public/images/editor.png)
-
-The editor shows a DAG canvas with selectable nodes, a properties panel, and the "Execute Cascade" button that chains FlowVault contract calls on Stacks testnet. Connect a Leather or Xverse wallet, select a template, customize percentages, set recipient addresses, and execute.
-
 ## Smart Contract
 
 `contracts/cascade-registry.clar` stores published cascade graph definitions on-chain:
