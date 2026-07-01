@@ -75,7 +75,17 @@ All templates are valid DAGs — single root, no cycles, topologically sorted �
 
 **[cascade-rust.vercel.app](https://cascade-rust.vercel.app)** — Landing page with scroll-reveal cascade animation, "Why Cascade Is Different" comparison, and template gallery.
 
-**[cascade-rust.vercel.app/editor](https://cascade-rust.vercel.app/#editor)** — Full graph builder with 6 pre-built templates, node property editor, FlowVault wallet integration, and cascade execution.
+**[cascade-rust.vercel.app/editor](https://cascade-rust.vercel.app/editor)** — Full graph builder with 10 pre-built templates, node property editor, FlowVault wallet integration, and cascade execution.
+
+### Landing Page
+
+![Cascade Landing Page](public/images/landing.png)
+
+### Graph Editor
+
+![Cascade Graph Editor](public/images/editor.png)
+
+The editor shows a DAG canvas with selectable nodes, a properties panel, and the "Execute Cascade" button that chains FlowVault contract calls on Stacks testnet. Connect a Leather or Xverse wallet, select a template, customize percentages, set recipient addresses, and execute.
 
 ## Smart Contract
 
@@ -102,7 +112,16 @@ All transactions confirmed on Stacks testnet — verifiable via Hiro Explorer.
 
 FlowVault deposit result: `(ok (tuple (deposited u5000000) (held u5000000) (locked u2500000) (split u0)))`
 
-This proves real FlowVault integration — Lock primitive configured on-chain, USDCx routed through the vault with routing rules applied.
+### Recent Testnet Transactions (CLI Wallet)
+
+Wallet: `ST1H099KW6K2M17JVAC8C5TFBT4HDRC8DHYKZNJGX` (500 STX via [faucet](https://explorer.hiro.so/txid/0x99a148839fdb50933526c463ced88810effbe93b00416ef88107152a304d93d6?chain=testnet))
+
+| # | Function | Tx ID |
+|---|---|---|
+| 1 | `clear-routing-rules` | [`0xc389c2...`](https://explorer.hiro.so/txid/0xc389c276e3e66556d4160b0edf309c5c7ad4828712aedf31eb5ea078f202fe23?chain=testnet) |
+| 2 | `set-routing-rules` (Lock 0.5 USDCx, Hold 0.5) | [`0x233605...`](https://explorer.hiro.so/txid/0x233605d3f9a55725789969d9936c79b27e0247b7e07f844aad7557b940a9dd6e?chain=testnet) |
+
+> **Note**: The `deposit` step requires USDCx tokens. Testnet USDCx is bridged via Circle's CCTP protocol (`usdcx-v1` contract). Execute `npx tsx scripts/execute-cascade.ts` after bridging USDCx from Circle Devnet.
 
 ## Quick Start
 
@@ -156,6 +175,59 @@ Cascade uses the FlowVault SDK to interact with deployed testnet contracts:
 Contract addresses:
 - FlowVault v2: `STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD.flowvault-v2`
 - USDCx testnet: `ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx`
+
+## How It Works — Templates, Mock Data, and Real Transactions
+
+### Templates are Starting Points, Not Mock Data
+
+The 10 graph templates in `lib/graph-engine.ts` are **pre-built graph configurations** — they define node labels, types (Lock/Split/Hold), percentages, and edge connections. These are loaded into the editor as a starting point. You customize them (change percentages, add/remove nodes, connect edges, set recipient addresses) before executing.
+
+**What's pre-configured (editable in the UI):**
+- Node positions and types
+- Default lock percentages (e.g., "60%")
+- Default lock duration in Stacks blocks
+- Graph topology (edges between nodes)
+
+**What's NOT mocked — requires a connected wallet:**
+- All FlowVault SDK calls (`setRoutingRules`, `deposit`, `clearRoutingRules`)
+- Stacks blockchain transactions (confirmed onchain)
+- USDCx token transfers (real SIP-010 fungible token on testnet)
+- Contract interactions with `flowvault-v2` and `usdcx` testnet contracts
+
+### Execution Flow (When Connected)
+
+```
+1. User clicks "Execute Cascade" 
+2. Graph is validated (DAG: single root, no cycles)
+3. For each node in topological order:
+   a. clearRoutingRules() — resets FlowVault routing config
+   b. setRoutingRules({ lockAmount, lockUntilBlock, splitAddress, splitAmount }) — on-chain tx
+   c. deposit(amount) — transfers USDCx into the FlowVault
+   d. waitForTransactionSuccess(txId) — polls Hiro API until confirmed
+   e. Hold balance cascades to child nodes as their deposit amount
+4. All transaction links shown with Hiro Explorer URLs
+```
+
+### Stacks Testnet Wallet for Development
+
+A generated testnet wallet for local testing:
+
+| Field | Value |
+|---|---|
+| Address | `ST1H099KW6K2M17JVAC8C5TFBT4HDRC8DHYKZNJGX` |
+| Network | Stacks Testnet |
+| STX Balance | 500 (funded via faucet) |
+| Tx | [`0x99a148...`](https://explorer.hiro.so/txid/0x99a148839fdb50933526c463ced88810effbe93b00416ef88107152a304d93d6?chain=testnet) |
+
+> **Note**: The frontend uses browser wallet extension (Leather/Xverse) which generates SP3-prefix single-sig addresses. The CLI-generated ST1 address uses a multi-sig format that the Hiro faucet accepts. Both are valid testnet accounts.
+
+### Required Tokens
+
+The Cascade app uses **USDCx** (testnet), a SIP-010 token:
+- Contract: `ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx`
+- FlowVault: `STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD.flowvault-v2`
+
+To execute cascades, your wallet needs **both STX (for gas) and USDCx (for deposits)**.
 
 ## Tech Stack
 
