@@ -1,4 +1,6 @@
 {
   "framework": "nextjs",
-  "rootDirectory": "editor-app"
+  "buildCommand": "cd editor-app && pnpm install --no-frozen-lockfile && pnpm run build",
+  "outputDirectory": "editor-app/.next",
+  "installCommand": "pnpm install --no-frozen-lockfile"
 }
