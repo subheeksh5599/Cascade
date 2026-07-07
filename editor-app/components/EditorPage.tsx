@@ -13,21 +13,43 @@ import {
   TEMPLATES,
   validateGraph,
   generateNodeId,
-  findRoots,
 } from "@/lib/graph-engine";
 import { tokenToMicro } from "flowvault-sdk";
 
 type NodeTypeStr = "lock" | "split" | "hold";
 
+function graphToBase64(g: CascadeGraph): string {
+  try { return btoa(JSON.stringify(g)); } catch { return ""; }
+}
+
+function base64ToGraph(s: string): CascadeGraph | null {
+  try {
+    const g = JSON.parse(atob(s));
+    if (g?.nodes && g?.edges) return g;
+    return null;
+  } catch { return null; }
+}
+
 export function EditorPage() {
-  const [graph, setGraph] = useState<CascadeGraph>(TEMPLATES[0].graph);
+  const [graph, setGraph] = useState<CascadeGraph>(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.slice(1);
+      if (hash.startsWith("g=")) {
+        const g = base64ToGraph(hash.slice(2));
+        if (g) return g;
+      }
+    }
+    return TEMPLATES[0].graph;
+  });
+
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [nodeTypeAdd, setNodeTypeAdd] = useState<NodeTypeStr>("lock");
   const [depositAmount, setDepositAmount] = useState("500000");
   const [validation, setValidation] = useState<{ valid: boolean; errors: string[] }>({ valid: true, errors: [] });
   const [activeTemplate, setActiveTemplate] = useState(0);
-  const [computedHash, setComputedHash] = useState<string>("");
-  const [published, setPublished] = useState(false);
+  const [computedHash, setComputedHash] = useState("");
+  const [forkInput, setForkInput] = useState("");
+  const [forkError, setForkError] = useState("");
 
   const wallet = useStacksWallet();
   const cascade = useGraphCascade(wallet.address);
@@ -36,9 +58,7 @@ export function EditorPage() {
   useEffect(() => { runValidate(); }, [runValidate]);
 
   useEffect(() => {
-    if (validation.valid) {
-      setComputedHash(hashGraph(graph));
-    }
+    if (validation.valid) setComputedHash(hashGraph(graph));
   }, [graph, validation.valid]);
 
   const updateNode = useCallback((id: string, updates: Partial<CascadeNode>) => {
@@ -48,12 +68,69 @@ export function EditorPage() {
   const addNode = useCallback(() => {
     const lastY = graph.nodes.length > 0 ? Math.max(...graph.nodes.map((n) => n.y)) + 90 : 200;
     const id = generateNodeId();
+    const cap = nodeTypeAdd[0].toUpperCase() + nodeTypeAdd.slice(1);
     setGraph((g) => ({
       ...g,
-      nodes: [...g.nodes, { id, type: nodeTypeAdd, label: `${nodeTypeAdd[0].toUpperCase()}${nodeTypeAdd.slice(1)} ${g.nodes.length + 1}`, x: 435, y: lastY, lockAmount: nodeTypeAdd === "lock" ? "50" : "0", lockUntilDelta: 144, splitAddress: "", splitAmount: nodeTypeAdd === "split" ? "10" : "0" }],
+      nodes: [...g.nodes, {
+        id, type: nodeTypeAdd, label: `${cap} ${g.nodes.length + 1}`,
+        x: 435, y: lastY,
+        lockAmount: nodeTypeAdd === "lock" ? "50" : "0",
+        lockUntilDelta: 144, splitAddress: "",
+        splitAmount: nodeTypeAdd === "split" ? "10" : "0",
+      }],
     }));
     setSelectedNode(id);
   }, [nodeTypeAdd, graph.nodes]);
+
+  function handleFork() {
+    setForkError("");
+    const val = forkInput.trim();
+    if (!val) return;
+
+    const byHash = TEMPLATES.find((t) => {
+      const h = hashGraph(t.graph);
+      return h === val || h.startsWith(val);
+    });
+    if (byHash) {
+      setGraph(byHash.graph);
+      setActiveTemplate(TEMPLATES.indexOf(byHash));
+      setForkInput("");
+      return;
+    }
+
+    const idx = parseInt(val);
+    if (!isNaN(idx) && idx >= 0 && idx < TEMPLATES.length) {
+      setGraph(TEMPLATES[idx].graph);
+      setActiveTemplate(idx);
+      setForkInput("");
+      return;
+    }
+
+    const g = base64ToGraph(val);
+    if (g) {
+      setGraph(g);
+      setActiveTemplate(-1);
+      setForkInput("");
+      return;
+    }
+
+    setForkError("Not found. Try template index (0-8) or paste a graph URL.");
+  }
+
+  function handleShare() {
+    const enc = graphToBase64(graph);
+    const url = `${window.location.origin}/editor#g=${enc}`;
+    navigator.clipboard.writeText(url).catch(() => {
+      prompt("Copy this link:", url);
+    });
+  }
+
+  function handleSimulate() {
+    const v = validateGraph(graph);
+    setValidation(v);
+    if (!v.valid) return;
+    cascade.simulate(graph, tokenToMicro(depositAmount));
+  }
 
   function handleExecute() {
     const v = validateGraph(graph);
@@ -62,11 +139,20 @@ export function EditorPage() {
     cascade.execute(graph, tokenToMicro(depositAmount));
   }
 
-  const activeNode = cascade.steps.find((s) => s.status !== "pending" && s.status !== "done")?.nodeId ?? null;
+  const activeNode = cascade.steps.find(
+    (s) => s.status !== "pending" && s.status !== "done"
+  )?.nodeId ?? null;
+
+  const allSteps = cascade.steps.length > 0 ? cascade.steps : [];
   const running = cascade.status === "running";
   const done = cascade.status === "done";
-  const hasSteps = cascade.steps.length > 0;
-  const rootLabel = findRoots(graph).length === 1 ? findRoots(graph)[0] : null;
+  const hasSimulated = cascade.simulated.length > 0;
+  const totalSteps = allSteps.length > 0 ? allSteps.length : cascade.simulated.length;
+
+  const replayNode =
+    done && cascade.replayIndex > 0
+      ? (allSteps[cascade.replayIndex - 1]?.nodeId ?? null)
+      : null;
 
   return (
     <main className="editor-page">
@@ -89,6 +175,25 @@ export function EditorPage() {
               </select>
               <button className="btn-accent btn-sm" onClick={addNode}>+ Add</button>
             </div>
+
+            <div className="toolbar-group">
+              <input
+                type="text"
+                placeholder="Paste graph hash to fork..."
+                value={forkInput}
+                onChange={(e) => { setForkInput(e.target.value); setForkError(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleFork()}
+                className="nf-input"
+                style={{ width: 220, fontSize: 11 }}
+              />
+              <button className="btn-accent btn-sm" onClick={handleFork}>Fork</button>
+              {forkError && <span style={{ fontSize: 10, color: "#ef4444", marginLeft: 8 }}>{forkError}</span>}
+            </div>
+
+            <button className="btn-ghost" onClick={handleShare} title="Copy share link" style={{ fontSize: 11 }}>
+              Share
+            </button>
+
             <div className="chip-row">
               {TEMPLATES.map((t, i) => (
                 <button key={t.name} className={`chip ${i === activeTemplate ? "chip--active" : ""}`}
@@ -100,19 +205,78 @@ export function EditorPage() {
           </div>
 
           <div className="editor-canvas">
-            <GraphSVG graph={graph} activeNode={activeNode} cascadeDone={done} />
+            <GraphSVG
+              graph={graph}
+              activeNode={activeNode}
+              cascadeDone={done}
+              simulated={hasSimulated ? cascade.simulated : undefined}
+              replayNode={replayNode}
+            />
           </div>
 
-          {hasSteps && (
+          {allSteps.length > 0 && (
             <div className="editor-progress">
-              {cascade.steps.map((step, i) => (
+              {allSteps.map((step, i) => (
                 <div key={step.nodeId}
                   className={`ce-step ce-step--${step.status} ${step.status === "deposit" || step.status === "confirming" ? "ce-step--live" : ""}`}>
-                  <span className="ce-step__order">{step.status === "done" ? "\u2713" : step.status === "error" ? "\u2717" : i + 1}</span>
+                  <span className="ce-step__order">
+                    {step.status === "done" ? "\u2713" : step.status === "error" ? "\u2717" : i + 1}
+                  </span>
                   <span className="ce-step__label">{step.label}</span>
                   <span className="ce-step__status">{step.status}</span>
+                  {step.txId && (
+                    <a href={getHiroTxUrl(step.txId)} target="_blank" rel="noreferrer"
+                      style={{ fontSize: 9, color: "var(--bone)", marginLeft: 8, textDecoration: "underline" }}>
+                      {step.txId.slice(0, 8)}...
+                    </a>
+                  )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {hasSimulated && !allSteps.length && (
+            <div className="editor-progress">
+              {cascade.simulated.map((s, i) => (
+                <div key={s.nodeId} className="ce-step ce-step--done">
+                  <span className="ce-step__order">{i + 1}</span>
+                  <span className="ce-step__label">{s.label}</span>
+                  <span className="ce-step__status">simulated</span>
+                  <span style={{ fontSize: 9, color: "var(--bone)", marginLeft: 8 }}>
+                    {Number(s.inputMicro) / 1e6} USDCx
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {done && totalSteps > 1 && (
+            <div className="replay-bar">
+              <div className="replay-bar__head">
+                <span className="replay-bar__label">Replay</span>
+                <span className="replay-bar__step">
+                  {cascade.replayIndex === 0
+                    ? "Drag to replay execution"
+                    : `Step ${cascade.replayIndex}/${totalSteps}: ${allSteps[cascade.replayIndex - 1]?.label ?? ""}`}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={totalSteps}
+                value={cascade.replayIndex}
+                onChange={(e) => cascade.setReplayIndex(parseInt(e.target.value))}
+                className="replay-slider"
+              />
+              {cascade.replayIndex > 0 && allSteps[cascade.replayIndex - 1]?.txId && (
+                <a
+                  href={getHiroTxUrl(allSteps[cascade.replayIndex - 1].txId!)}
+                  target="_blank" rel="noreferrer"
+                  className="replay-bar__txlink"
+                >
+                  View Tx on Hiro Explorer
+                </a>
+              )}
             </div>
           )}
 
@@ -122,17 +286,7 @@ export function EditorPage() {
               <div className="ce-deposit-row">
                 <input type="number" min="0" step="0.000001" inputMode="decimal"
                   value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)}
-                  className="ce-amount"
-                  style={{
-                    fontFamily: "'SF Mono','Fira Code','JetBrains Mono',monospace",
-                    fontSize: "clamp(32px,5vw,56px)",
-                    fontWeight: 800,
-                    letterSpacing: "-0.02em",
-                    background: "linear-gradient(to right, #ffffff, #e2e8f0, #34d399)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    filter: "drop-shadow(0 0 12px rgba(52,211,153,0.25))",
-                  }} />
+                  className="ce-amount" />
                 <span className="ce-currency">USDCx</span>
               </div>
             </div>
@@ -143,19 +297,25 @@ export function EditorPage() {
               </div>
             )}
 
-            <button className="btn-accent" onClick={handleExecute}
-              disabled={!wallet.isConnected || running}>
-              {running ? "Cascading..." : done ? "Complete" : "Execute Cascade"}
-            </button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn-ghost" onClick={handleSimulate}
+                disabled={running}>
+                Simulate
+              </button>
+              <button className="btn-accent" onClick={handleExecute}
+                disabled={!wallet.isConnected || running}>
+                {running ? "Cascading..." : done ? "Complete" : "Execute Cascade"}
+              </button>
+            </div>
 
             {cascade.error && <div className="status-panel error">{cascade.error}</div>}
 
             {cascade.graphHash && done && (
-              <div className="status-panel" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", padding: "12px 16px", borderRadius: 8, marginTop: 12 }}>
-                <div style={{ fontSize: 12, color: "var(--bone)", marginBottom: 4 }}>Graph Hash</div>
-                <code style={{ color: "#34d399", fontSize: 13 }}>{cascade.graphHash}</code>
-                <div style={{ fontSize: 11, color: "var(--bone)", marginTop: 6 }}>
-                  {cascade.witnesses.length} execution witnesses generated. Verifiable on-chain.
+              <div className="hash-panel">
+                <div className="hash-panel__label">Graph Hash</div>
+                <code className="hash-panel__hash">{cascade.graphHash}</code>
+                <div className="hash-panel__meta">
+                  {cascade.witnesses.length} execution witnesses generated
                 </div>
               </div>
             )}
@@ -221,7 +381,7 @@ export function EditorPage() {
           )}
 
           {computedHash && validation.valid && (
-            <div style={{ marginTop: 20, padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="sidebar-hash">
               <div style={{ fontSize: 11, color: "var(--bone)", marginBottom: 4 }}>Graph Hash</div>
               <code style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", wordBreak: "break-all" }}>{computedHash}</code>
             </div>

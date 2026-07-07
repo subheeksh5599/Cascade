@@ -862,6 +862,102 @@ ul, ol { list-style: none; }
   .topbar-nav { display: none; }
 }
 
+/* ── Replay Slider ─────────────────────────────────────── */
+.replay-bar {
+  position: relative;
+  margin: 16px 0;
+  padding: 16px 20px;
+  background: rgba(16,185,129,0.04);
+  border: 1px solid rgba(16,185,129,0.12);
+  border-radius: 10px;
+}
+.replay-bar__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.replay-bar__label {
+  font-size: 11px;
+  color: var(--bone);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.replay-bar__step {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+.replay-slider {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.replay-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid rgba(16,185,129,0.3);
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(16,185,129,0.3);
+}
+.replay-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid rgba(16,185,129,0.3);
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(16,185,129,0.3);
+}
+.replay-bar__txlink {
+  font-size: 11px;
+  color: #10b981;
+  text-decoration: underline;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+/* ── Hash Panel ───────────────────────────────────────── */
+.hash-panel {
+  background: rgba(52,211,153,0.06);
+  border: 1px solid rgba(52,211,153,0.15);
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin-top: 14px;
+}
+.hash-panel__label {
+  font-size: 11px;
+  color: var(--bone);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.hash-panel__hash {
+  color: #34d399;
+  font-size: 14px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  word-break: break-all;
+}
+.hash-panel__meta {
+  font-size: 11px;
+  color: var(--bone);
+  margin-top: 6px;
+}
+
+/* ── Sidebar Hash ─────────────────────────────────────── */
+.sidebar-hash {
+  margin-top: 20px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
