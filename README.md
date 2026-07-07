@@ -19,9 +19,7 @@ Define a directed acyclic graph of FlowVault vaults. Deposit USDCx once at the r
   <img src="media/editor.png" alt="Cascade Editor" width="800" />
 </p>
 
-<p align="center">
-  <strong>Built for the <a href="https://flowvault.dev/bounty">FlowVault Builder Bounty</a> — 1,000 USDT prize pool</strong>
-</p>
+
 
 ## Why Cascade
 
