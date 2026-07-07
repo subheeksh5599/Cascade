@@ -13,7 +13,7 @@ export function WalletModal({ isOpen, onClose, onConnect }) {
         <h3 className="text-sm font-bold text-white mb-4 text-center uppercase tracking-widest">Connect Wallet</h3>
         <div className="flex flex-col gap-2">
           {WALLETS.map((w) => (
-            <button key={w.name} onClick={() => onConnect(w.name, `ST3EH...${Math.random().toString(36).slice(2, 6).toUpperCase()}`)}
+            <button key={w.name} onClick={() => onConnect()}
               className="flex items-center gap-3 p-3 border border-slate-800 rounded-xl hover:border-slate-600 bg-slate-950/50 transition-all group">
               <span className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black"
                 style={{ background: `${w.color}15`, color: w.color, border: `1px solid ${w.color}40` }}>
