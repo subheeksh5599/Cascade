@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { type CascadeGraph, type CascadeNode, TEMPLATES, validateGraph, generateNodeId } from "./graph-engine";
+import { type CascadeGraph, type CascadeNode, TEMPLATES, validateGraph, generateNodeId, hashGraph } from "./graph-engine";
 import { GraphCanvas } from "./GraphCanvas";
 import { TxnModal } from "./TxnModal";
 import { useGraphCascade } from "./lib/useGraphCascade";
@@ -21,8 +21,28 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
   const [validation, setValidation] = useState<{ valid: boolean; errors: string[] }>({ valid: true, errors: [] });
   const [activeTemplate, setActiveTemplate] = useState(0);
   const [showTxnModal, setShowTxnModal] = useState(false);
+  const [forkInput, setForkInput] = useState("");
+  const [forkError, setForkError] = useState("");
 
   const cascade = useGraphCascade(walletAddress);
+
+  const handleFork = () => {
+    setForkError("");
+    const v = forkInput.trim(); if (!v) return;
+    const idx = parseInt(v);
+    if (!isNaN(idx) && idx >= 0 && idx < TEMPLATES.length) { setGraph(TEMPLATES[idx].graph); setActiveTemplate(idx); setForkInput(""); return; }
+    const byHash = TEMPLATES.find(t => { const h = hashGraph(t.graph); return h === v || h.startsWith(v); });
+    if (byHash) { setGraph(byHash.graph); setActiveTemplate(TEMPLATES.indexOf(byHash)); setForkInput(""); return; }
+    try { const g = JSON.parse(atob(v)); if (g?.nodes && g?.edges) { setGraph(g); setActiveTemplate(-1); setForkInput(""); return; } } catch {}
+    setForkError("Not found. Try index (0-8) or graph hash.");
+  };
+
+  const handleSimulate = () => {
+    const v = validateGraph(graph); setValidation(v);
+    if (!v.valid) return;
+    try { const amt = tokenToMicro(depositInput); if (amt > 0n) cascade.simulate(graph, amt); }
+    catch { setValidation({ valid: false, errors: ["Invalid deposit amount."] }); }
+  };
 
   const runValidate = useCallback(() => setValidation(validateGraph(graph)), [graph]);
   useEffect(() => { runValidate(); }, [runValidate]);
@@ -148,18 +168,24 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
               </div>
             </div>
 
-            {/* Execute */}
-            <button
-              onClick={openExecuteModal}
-              disabled={isRunning || !walletAddress}
-              className={`text-xs font-black px-5 py-2 rounded-lg transition-all uppercase tracking-wider ${
-                !walletAddress
-                  ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                  : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)]"
-              }`}
-            >
-              {!walletAddress ? "Connect Wallet" : isRunning ? "Cascading..." : "Execute"}
-            </button>
+            {/* Simulate / Execute */}
+            <div className="flex items-center gap-2">
+              <button onClick={handleSimulate} disabled={isRunning}
+                className="text-[10px] font-bold text-slate-500 hover:text-amber-400 uppercase tracking-wider transition-colors disabled:opacity-30">
+                Simulate
+              </button>
+              <button
+                onClick={openExecuteModal}
+                disabled={isRunning || !walletAddress}
+                className={`text-xs font-black px-5 py-2 rounded-lg transition-all uppercase tracking-wider ${
+                  !walletAddress
+                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                    : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)]"
+                }`}
+              >
+                {!walletAddress ? "Connect Wallet" : isRunning ? "Cascading..." : "Execute"}
+              </button>
+            </div>
           </div>
 
           {/* Template buttons */}
@@ -178,10 +204,60 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
             ))}
           </div>
 
+          {/* Fork row */}
+          <div className="flex items-center gap-2">
+            <input type="text" placeholder="Fork: paste graph hash or index..."
+              value={forkInput}
+              onChange={e => { setForkInput(e.target.value); setForkError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleFork()}
+              className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] font-mono text-slate-300 w-56 focus:outline-none focus:border-emerald-500"
+            />
+            <button onClick={handleFork} className="text-[10px] font-bold text-slate-500 hover:text-emerald-400 uppercase tracking-wider">Fork</button>
+            {forkError && <span className="text-[10px] text-red-400/70 font-mono">{forkError}</span>}
+          </div>
+
           {/* Canvas */}
           <div className="flex-1 min-h-[400px] border border-slate-900 rounded-xl bg-slate-950 overflow-hidden">
             <GraphCanvas graph={graph} activeNode={activeStep || selectedNode} onSelectNode={setSelectedNode} />
           </div>
+
+          {/* Simulated results */}
+          {cascade.simulated.length > 0 && !hasSteps && (
+            <div className="flex gap-3 flex-wrap">
+              {cascade.simulated.map((s, i) => (
+                <div key={s.nodeId} className="flex-1 min-w-[120px] p-3 rounded-lg border border-emerald-900/20 bg-emerald-950/10 text-xs">
+                  <div className="text-[18px] font-mono font-bold text-emerald-400 mb-1">{i + 1}</div>
+                  <div className="font-semibold text-white/90">{s.label}</div>
+                  <div className="text-[9px] uppercase tracking-wider mt-1 text-emerald-500/60">simulated</div>
+                  <div className="text-[10px] font-mono text-slate-400 mt-1">{Number(s.inputMicro) / 1e6} USDCx</div>
+                  {s.lockMicro > 0n && <div className="text-[9px] font-mono text-amber-400/70">Lock: {Number(s.lockMicro) / 1e6}</div>}
+                  {s.splitMicro > 0n && <div className="text-[9px] font-mono text-indigo-400/70">Split: {Number(s.splitMicro) / 1e6}</div>}
+                  {s.holdMicro > 0n && <div className="text-[9px] font-mono text-cyan-400/70">Hold: {Number(s.holdMicro) / 1e6}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Replay slider */}
+          {cascade.status === "done" && cascade.steps.length > 1 && (
+            <div className="p-4 border border-emerald-900/20 rounded-xl bg-emerald-950/5">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Replay</span>
+                <span className="text-[10px] font-mono text-slate-500">
+                  {cascade.replayIndex === 0 ? "Drag slider" : `Step ${cascade.replayIndex}/${cascade.steps.length}: ${cascade.steps[cascade.replayIndex - 1]?.label ?? ""}`}
+                </span>
+              </div>
+              <input type="range" min={0} max={cascade.steps.length} value={cascade.replayIndex}
+                onChange={e => cascade.setReplayIndex(parseInt(e.target.value))}
+                className="w-full h-1.5 rounded-full appearance-none bg-slate-800 cursor-pointer"
+                style={{ accentColor: "#10b981" }}
+              />
+              {cascade.replayIndex > 0 && cascade.steps[cascade.replayIndex - 1]?.txId && (
+                <a href={getHiroTxUrl(cascade.steps[cascade.replayIndex - 1].txId)} target="_blank" rel="noreferrer"
+                  className="text-[10px] font-mono text-emerald-400/70 hover:text-emerald-300 mt-2 inline-block">View Tx &rarr;</a>
+              )}
+            </div>
+          )}
 
           {/* Execution Progress */}
           {hasSteps && (

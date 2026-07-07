@@ -85,8 +85,29 @@ export function getChildren(nodeId: string, graph: CascadeGraph): string[] {
   return graph.edges.filter((e) => e.from === nodeId).map((e) => e.to);
 }
 
+export function getParents(nodeId: string, graph: CascadeGraph): string[] {
+  return graph.edges.filter((e) => e.to === nodeId).map((e) => e.from);
+}
+
 export function getNodeById(id: string, graph: CascadeGraph): CascadeNode | undefined {
   return graph.nodes.find((n) => n.id === id);
+}
+
+export function hashGraph(graph: CascadeGraph): string {
+  const payload = {
+    nodes: graph.nodes.map((n) => ({
+      id: n.id, type: n.type, label: n.label,
+      lockAmount: n.lockAmount ?? "0", lockUntilDelta: n.lockUntilDelta ?? 0,
+      splitAddress: n.splitAddress ?? "", splitAmount: n.splitAmount ?? "0",
+    })),
+    edges: graph.edges.map((e) => ({ from: e.from, to: e.to })),
+  };
+  const str = JSON.stringify(payload, Object.keys(payload).sort());
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 export const TEMPLATES: { name: string; description: string; graph: CascadeGraph }[] = [

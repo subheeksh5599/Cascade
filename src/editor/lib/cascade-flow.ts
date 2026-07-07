@@ -1,7 +1,5 @@
-import type { RoutingRules, TransactionResult } from "flowvault-sdk";
-import type { CascadeGraph, CascadeNode } from "../graph-engine";
-import { topologicalSort, getChildren, getNodeById } from "../graph-engine";
-import { waitForTransactionSuccess, buildDepositPostConditions } from "./escrow-flow";
+import type { CascadeGraph, CascadeNode } from "./graph-engine";
+import { topologicalSort, getNodeById } from "./graph-engine";
 
 export type CascadeStep = {
   nodeId: string;
@@ -18,13 +16,6 @@ export interface CascadeState {
   rootDepositMicro: bigint;
 }
 
-export interface CascadeVaultSdk {
-  setRoutingRules(rules: RoutingRules): Promise<TransactionResult>;
-  deposit(amount: bigint): Promise<TransactionResult>;
-  getCurrentBlockHeight(senderAddress: string): Promise<number>;
-  clearRoutingRules(): Promise<TransactionResult>;
-}
-
 export function buildCascadeSteps(graph: CascadeGraph): CascadeStep[] {
   const sorted = topologicalSort(graph);
   return sorted.map((id) => ({
@@ -36,8 +27,7 @@ export function buildCascadeSteps(graph: CascadeGraph): CascadeStep[] {
 
 export function calculateNodeAllocation(
   node: CascadeNode,
-  totalMicro: bigint,
-  graph: CascadeGraph
+  totalMicro: bigint
 ): {
   lockAmount: bigint;
   splitAmount: bigint;
@@ -51,7 +41,7 @@ export function calculateNodeAllocation(
       lockAmount: lockMicro,
       splitAmount: 0n,
       holdAmount: totalMicro - lockMicro,
-      splitAddress: node.walletAddress ?? node.splitAddress ?? "",
+      splitAddress: "",
     };
   }
 
@@ -64,7 +54,7 @@ export function calculateNodeAllocation(
       lockAmount: lockMicro,
       splitAmount: splitMicro,
       holdAmount: totalMicro - lockMicro - splitMicro,
-      splitAddress: node.walletAddress ?? node.splitAddress ?? "",
+      splitAddress: node.splitAddress ?? "",
     };
   }
 
@@ -72,59 +62,23 @@ export function calculateNodeAllocation(
     lockAmount: 0n,
     splitAmount: 0n,
     holdAmount: totalMicro,
-    splitAddress: node.walletAddress ?? "",
+    splitAddress: "",
   };
-}
-
-export async function executeCascadeNode(params: {
-  sdk: CascadeVaultSdk;
-  node: CascadeNode;
-  graph: CascadeGraph;
-  walletAddress: string;
-  totalMicro: bigint;
-  currentBlock: number;
-}): Promise<TransactionResult> {
-  const alloc = calculateNodeAllocation(params.node, params.totalMicro, params.graph);
-  const lockUntil = params.currentBlock + (params.node.lockUntilDelta ?? 144);
-
-  await params.sdk.setRoutingRules({
-    lockAmount: alloc.lockAmount,
-    lockUntilBlock: lockUntil,
-    splitAddress: alloc.splitAddress || null,
-    splitAmount: alloc.splitAmount,
-  });
-
-  const depositTx = await params.sdk.deposit(params.totalMicro);
-  await waitForTransactionSuccess(depositTx.txId);
-  return depositTx;
 }
 
 export function getNextDepositAmount(
   node: CascadeNode,
   totalMicro: bigint,
-  children: CascadeNode[],
-  graph: CascadeGraph
+  children: CascadeNode[]
 ): bigint {
   if (children.length === 0) return 0n;
 
   if (node.type === "hold") {
-    const perChild = totalMicro / BigInt(children.length);
-    return perChild;
+    return totalMicro / BigInt(children.length);
   }
 
-  const alloc = calculateNodeAllocation(node, totalMicro, graph);
+  const alloc = calculateNodeAllocation(node, totalMicro);
   const distributable = alloc.holdAmount;
-
-  if (node.type === "split") {
-    const totalSplitPct = children.reduce((sum, child) => {
-      const pct = parseFloat(child.lockAmount ?? child.splitAmount ?? "0");
-      return sum + Math.round(pct * 100);
-    }, 0);
-    if (totalSplitPct === 0) {
-      return distributable / BigInt(children.length);
-    }
-    return distributable;
-  }
 
   return distributable > 0n ? distributable / BigInt(children.length) : 0n;
 }
