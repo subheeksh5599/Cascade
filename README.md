@@ -1,90 +1,106 @@
+<div align="center">
+
 # Cascade
 
-Programmable money routing graphs on FlowVault. Built for Stacks.
+**Programmable money routing graphs on Stacks.**
 
-Define a directed acyclic graph where each node is a FlowVault routing rule
-(Lock, Split, Hold). Deposit USDCx at the root. The keeper executes every
-downstream node in topological order. Each step produces a verifiable state
-witness.
+[![Built on Stacks](https://img.shields.io/badge/Built%20on-Stacks-5546ff)](https://stacks.co)
+[![FlowVault SDK](https://img.shields.io/badge/FlowVault-SDK-0f766e)](https://github.com/yashpunmiya/Flowvault)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Demo](https://img.shields.io/badge/Demo-Live-10b981)](https://cascade-rust.vercel.app)
 
-**[cascade-rust.vercel.app](https://cascade-rust.vercel.app)** |
-**[Editor](https://cascade-rust.vercel.app/#editor)**
+Define a directed acyclic graph of FlowVault vaults. Deposit USDCx once at the root. The keeper executes Lock, Split, and Hold rules at every downstream node. Each step produces a verifiable state witness.
 
-Built for the [FlowVault Builder Bounty](https://flowvault.dev/bounty).
+</div>
 
-## Architecture
+<br/>
 
-```
-Graph Editor →  Keeper resolves  →  FlowVault SDK  →  Stacks testnet
-                        │
-                        ▼
-                  State Witnesses
-                  (graph hash bound
-                   to each node step)
-```
+<p align="center">
+  <img src="media/editor.png" alt="Cascade Editor" width="800" />
+</p>
 
-### Keeper
+<p align="center">
+  <strong>Built for the <a href="https://flowvault.dev/bounty">FlowVault Builder Bounty</a> — 1,000 USDT prize pool</strong>
+</p>
 
-`src/editor/lib/keeper.ts` — deterministic pure function. Given a graph +
-on-chain state, `resolveNextStep()` computes exactly which node executes next,
-with what allocation, and whether it can proceed. Same inputs always produce
-same output. Nothing is hardcoded. Anyone can recompute independently.
+## Why Cascade
 
-### Execution Witnesses
+Most FlowVault apps use a single primitive: Deposit → Lock. Every org
+builds their own custom contract for anything more complex. Payroll routing,
+DAOs splitting revenue, milestone-based escrow with subcontractor cascades —
+all hand-coded per use case.
 
-`src/editor/lib/proof.ts` — each node execution stores a `CascadeStateWitness`
-containing the graph hash, computed allocation, strategy and deposit tx IDs,
-and parent references. `verifyWitness()` confirms integrity.
-
-### Registry Contract
-
-`contracts/cascade-registry.clar` — Clarity contract for on-chain graph
-metadata, per-node witness storage, and cascade composition. Published
-cascades become composable primitives — route one cascade's output into
-another.
+Cascade turns FlowVault into a **composable routing layer**. Define nodes.
+Connect edges. The DAG IS the specification. No custom contracts per org. No
+spreadsheets. No manual multi-sig signing for each payout.
 
 ## Features
 
-### Simulate (Dry-Run)
+### Simulate — Zero-Risk Dry Runs
 
-Runs the keeper resolver locally. No wallet needed. No transactions broadcast.
-Shows computed lock, split, and hold amounts on every node. Tests graph logic
-with zero risk before going on-chain.
+Runs the deterministic keeper locally. No wallet, no gas, no testnet USDCx.
+Shows computed lock, split, and hold amounts on every graph node. Test
+percentages, lock durations, and split addresses before broadcasting anything.
 
-### Fork from Explorer
+### Fork — Instant Graph Reuse
 
-Paste a graph hash, template index, or encoded graph URL into the fork input.
-Instantly loads the matching cascade into the editor. Use the Share button to
-copy your graph as a shareable URL.
+Paste any graph hash, template index, or base64-encoded URL into the fork
+input. Instantly loads the exact cascade. Hit Share to copy your graph as a
+URL — send it to anyone and they open it in their editor. Graphs are
+composable primitives.
 
-### Execution Replay
+### Replay — Visual Audit Trail
 
-After a cascade completes, a timeline slider appears. Drag to scrub through
-each execution step. Highlights the corresponding node on the graph canvas
-with direct links to Hiro Explorer for every transaction.
+After a cascade settles on-chain, a timeline slider appears. Drag to scrub
+through every execution step. Nodes highlight on the canvas. Each step links
+directly to the Hiro Explorer transaction. Turn a list of tx hashes into a
+visual settlement timeline.
 
-## Quick Start
+### Deterministic Keeper
 
-```bash
-pnpm install
-pnpm run dev
-```
+`resolveNextStep()` is a pure function. Given the same graph and on-chain
+state, anyone independently computes the same next action. No secrets. No
+side effects. This is the specification of correct cascade execution.
 
-Opens `http://localhost:5173`. Append `#editor` for the graph builder.
+### State Witnesses
+
+Every node execution generates a `CascadeStateWitness` containing the graph
+hash, computed allocation, strategy and deposit transaction IDs, and parent
+references. `verifyWitness()` confirms integrity of any execution step.
+
+### On-Chain Registry
+
+A Clarity contract (`cascade-registry.clar`) stores graph hashes, per-node
+witnesses, and composition links. Published cascades become importable by
+other cascades — route one graph's output into another as a node.
+
+## How It Works
+
+**Graph → Keeper → FlowVault → On-Chain**
+
+1. User defines a DAG in the visual editor — Lock, Split, Hold nodes with percentages, lock durations, and destination wallets
+2. `resolveNextStep()` deterministically computes which node executes next, with what allocation, based on the graph and current on-chain state
+3. For each node: `clearRoutingRules()` → `setRoutingRules()` → `deposit()` — three FlowVault contract calls via the Stacks wallet
+4. Each transaction is polled through the Hiro API until confirmed
+5. A state witness is generated per node, bound to the graph hash
+
+The editor supports **Simulate** mode that runs the keeper locally without broadcasting transactions — allocation math identical to real execution, zero risk.
 
 ## FlowVault Integration
 
-Calls three testnet contract functions per node:
+All functions call the same FlowVault v2 contract on Stacks testnet:
 
 | Function | Contract |
 |---|---|
 | `clear-routing-rules` | `STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD.flowvault-v2` |
-| `set-routing-rules` | " |
-| `deposit` | " |
+| `set-routing-rules` | `STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD.flowvault-v2` |
+| `deposit` | `STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD.flowvault-v2` |
 
 USDCx token: `ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx`
 
 ## On-Chain Transactions
+
+All confirmed on Stacks testnet. Verifiable via Hiro Explorer.
 
 | Function | Tx |
 |---|---|
@@ -94,42 +110,55 @@ USDCx token: `ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx`
 | Set routing | [`0x438a...`](https://explorer.hiro.so/txid/0x438ad09ed49a57a687090eca2527f93787cdd940982f38f1cfb2fbf3061fb474?chain=testnet) |
 | Deposit (5 USDCx) | [`0x4edb...`](https://explorer.hiro.so/txid/0x4edab35dcad547bd7511f4b77ccd018ba3c1bb0d685d6576c322f4e240274b15?chain=testnet) |
 
-## Project Structure
+Deposit result: `(ok (tuple (deposited u5000000) (held u5000000) (locked u2500000) (split u0)))`
 
+## Quick Start
+
+```bash
+git clone https://github.com/subheeksh5599/Cascade.git
+cd Cascade
+pnpm install
+pnpm run dev
 ```
-├── src/
-│   ├── App.jsx                    # Router (home / #editor)
-│   ├── components/                # Landing page sections
-│   │   ├── Hero.jsx               # Full-viewport video + morphing clip-path
-│   │   ├── About.jsx              # Scroll-reveal image expansion
-│   │   ├── Features.jsx           # Bento grid with 3D tilt
-│   │   ├── Story.jsx              # Mix-blend title + floating image
-│   │   ├── Contact.jsx            # Clip-path image layering
-│   │   ├── Footer.jsx
-│   │   └── Navbar.jsx             # Scroll-aware navbar + wallet
-│   └── editor/
-│       ├── EditorPage.tsx          # Graph builder (simulate, fork, replay)
-│       ├── GraphCanvas.tsx         # HTML/SVG node rendering
-│       ├── TxnModal.jsx            # Execution confirmation modal
-│       ├── graph-engine.ts         # DAG types, validation, toposort, templates
-│       └── lib/
-│           ├── keeper.ts           # Deterministic step resolver
-│           ├── proof.ts            # State witness + verification
-│           ├── useGraphCascade.ts  # Keeper-driven execution hook
-│           ├── cascade-flow.ts     # Allocation math
-│           ├── escrow-flow.ts      # Tx confirmation polling
-│           ├── flowvault.ts        # FlowVault SDK factory
-│           ├── config.ts           # Network + contract config
-│           └── wallet.ts           # Address extraction
-├── contracts/
-│   └── cascade-registry.clar       # On-chain registry contract
-└── package.json
-```
+
+Opens `http://localhost:5173`. Append `#editor` for the graph builder.
 
 ## Tech Stack
 
 Vite, React 19, Tailwind CSS, GSAP + ScrollTrigger, FlowVault SDK,
 @stacks/connect (Leather/Xverse), Clarity, Stacks testnet.
+
+## Project Structure
+
+```
+├── src/
+│   ├── App.jsx                    # Router (home / #editor)
+│   ├── components/                # Landing page
+│   │   ├── Hero.jsx               # Full-viewport video + morphing clip-path
+│   │   ├── About.jsx              # Scroll-reveal image expansion
+│   │   ├── Features.jsx           # Bento grid with 3D tilt
+│   │   ├── Story.jsx              # Mix-blend title + floating image
+│   │   ├── Contact.jsx            # Clip-path image layering
+│   │   ├── Footer.jsx             # Social icons + copyright
+│   │   └── Navbar.jsx             # Scroll-aware nav + wallet
+│   └── editor/
+│       ├── EditorPage.tsx          # Graph builder (simulate, fork, replay)
+│       ├── GraphCanvas.tsx         # HTML/SVG node canvas
+│       ├── TxnModal.jsx            # Confirm modal + gas estimate
+│       ├── graph-engine.ts         # DAG types, validation, templates
+│       └── lib/
+│           ├── keeper.ts           # Deterministic step resolver
+│           ├── proof.ts            # State witness + verification
+│           ├── useGraphCascade.ts  # Keeper-driven execute + simulate
+│           ├── cascade-flow.ts     # Allocation computation
+│           ├── escrow-flow.ts      # Transaction confirmation polling
+│           ├── flowvault.ts        # FlowVault SDK factory
+│           ├── config.ts           # Network + contract addresses
+│           └── wallet.ts           # Stacks address extraction
+├── contracts/
+│   └── cascade-registry.clar       # On-chain graph registry
+└── package.json
+```
 
 ## License
 
