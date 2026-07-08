@@ -130,7 +130,7 @@ export function EditorPage({ walletAddress, onConnect, onDisconnect, onNavigateH
               <button type="button" onClick={(e) => { e.preventDefault(); onDisconnect(); }} className="text-[9px] text-slate-500 hover:text-red-400 uppercase tracking-wider transition-colors font-mono">Disconnect</button>
             </div>
           ) : (
-            <button type="button" onClick={(e) => { e.preventDefault(); onConnect(); }} className="bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold uppercase tracking-wider px-4 py-1.5 rounded-md transition-all hover:border-emerald-400">
+            <button type="button" onClick={(e) => { e.preventDefault(); onConnect(); }} className="bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold uppercase tracking-wider px-4 py-1.5 rounded-md transition-all hover:border-emerald-400 cursor-pointer">
               Connect Wallet
             </button>
           )}
