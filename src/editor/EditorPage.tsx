@@ -13,7 +13,7 @@ const TYPE_COLORS: Record<string, string> = {
   hold: "#06b6d4",
 };
 
-export function EditorPage({ walletAddress, onNavigateHome }) {
+export function EditorPage({ walletAddress, onConnect, onDisconnect, onNavigateHome }) {
   const [graph, setGraph] = useState<CascadeGraph>(TEMPLATES[0].graph);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [nodeTypeAdd, setNodeTypeAdd] = useState<NodeType>("lock");
@@ -71,11 +71,11 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
   }, [selectedNode, graph]);
 
   const openExecuteModal = () => {
-    const v = validateGraph(graph);
     if (!walletAddress) {
-      setValidation({ valid: false, errors: ["Connect wallet before executing."] });
+      onConnect();
       return;
     }
+    const v = validateGraph(graph);
     // Check all nodes have destination wallets
     const missing = graph.nodes.filter(
       (n) => !n.walletAddress && !n.splitAddress
@@ -121,6 +121,19 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
           CASCADE<span className="text-emerald-400">.</span>
         </a>
         <div className="flex items-center gap-5">
+          {walletAddress ? (
+            <div className="flex items-center gap-2">
+              <div className="bg-slate-900 border border-slate-800 rounded-md px-3 py-1.5 font-mono text-[10px] text-slate-300 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>{walletAddress.slice(0, 5)}...{walletAddress.slice(-4)}</span>
+              </div>
+              <button onClick={onDisconnect} className="text-[9px] text-slate-500 hover:text-red-400 uppercase tracking-wider transition-colors font-mono">Disconnect</button>
+            </div>
+          ) : (
+            <button onClick={onConnect} className="bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold uppercase tracking-wider px-4 py-1.5 rounded-md transition-all hover:border-emerald-400">
+              Connect Wallet
+            </button>
+          )}
           <button onClick={onNavigateHome} className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider hover:text-white transition-colors">Exit Editor</button>
         </div>
       </header>
@@ -176,14 +189,14 @@ export function EditorPage({ walletAddress, onNavigateHome }) {
               </button>
               <button
                 onClick={openExecuteModal}
-                disabled={isRunning || !walletAddress}
+                disabled={isRunning}
                 className={`text-xs font-black px-5 py-2 rounded-lg transition-all uppercase tracking-wider ${
                   !walletAddress
-                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                    ? "bg-emerald-600 hover:bg-emerald-500 text-slate-950"
                     : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)]"
                 }`}
               >
-                {!walletAddress ? "Connect Wallet" : isRunning ? "Cascading..." : "Execute"}
+                {!walletAddress ? "Connect & Execute" : isRunning ? "Cascading..." : "Execute"}
               </button>
             </div>
           </div>

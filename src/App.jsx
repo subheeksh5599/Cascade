@@ -1,18 +1,19 @@
-import { useState, useCallback, useEffect, lazy, Suspense } from "react";
-import { connect, disconnect } from "@stacks/connect";
+import { useState, useCallback, useEffect } from "react";
+import { connect, disconnect, isConnected, getLocalStorage } from "@stacks/connect";
 import About from "./components/About";
 import Hero from "./components/Hero";
 import NavBar from "./components/Navbar";
 import Features from "./components/Features";
 import Story from "./components/Story";
 import Contact from "./components/Contact";
+import { EditorPage } from "./editor/EditorPage";
 import { FLOWVAULT_NETWORK } from "./editor/lib/config";
-
-const EditorPage = lazy(() => import("./editor/EditorPage").then(m => ({ default: m.EditorPage })));
+import { extractStxAddress } from "./editor/lib/wallet";
 
 function App() {
   const [page, setPage] = useState(() => window.location.hash === "#editor" ? "editor" : "home");
-  const [walletAddress, setWalletAddress] = useState(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
 
   useEffect(() => {
     const onHashChange = () => setPage(window.location.hash === "#editor" ? "editor" : "home");
@@ -20,10 +21,29 @@ function App() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  useEffect(() => {
+    if (!isConnected()) return;
+    try {
+      const stored = getLocalStorage();
+      const addr = extractStxAddress(stored?.addresses);
+      if (addr) setWalletAddress(addr);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (page === "editor") {
+      const id = setTimeout(() => setEditorReady(true), 50);
+      return () => clearTimeout(id);
+    } else {
+      setEditorReady(false);
+    }
+  }, [page]);
+
   const handleConnect = useCallback(async () => {
     try {
       const response = await connect({ network: FLOWVAULT_NETWORK, forceWalletSelect: true });
-      setWalletAddress(response?.addresses?.[0]?.address || null);
+      const addr = extractStxAddress(response?.addresses);
+      if (addr) setWalletAddress(addr);
     } catch (err) {
       console.error("Wallet connect failed:", err);
     }
@@ -35,15 +55,14 @@ function App() {
   }, []);
 
   if (page === "editor") {
-    return (
-      <Suspense fallback={
+    if (!editorReady) {
+      return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center">
           <div className="text-emerald-400 font-mono text-sm animate-pulse">Loading Editor...</div>
         </div>
-      }>
-        <EditorPage walletAddress={walletAddress} onNavigateHome={() => window.location.hash = ""} />
-      </Suspense>
-    );
+      );
+    }
+    return <EditorPage walletAddress={walletAddress} onConnect={handleConnect} onDisconnect={handleDisconnect} onNavigateHome={() => { window.location.hash = ""; setPage("home"); }} />;
   }
 
   return (
