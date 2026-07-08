@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { connect, disconnect } from "@stacks/connect";
+import { connect, disconnect, getLocalStorage } from "@stacks/connect";
 import About from "./components/About";
 import Hero from "./components/Hero";
 import NavBar from "./components/Navbar";
@@ -25,12 +25,9 @@ function App() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("@stacks/connect");
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      const sessions = parsed?.sessions || parsed?.state?.sessions;
-      if (!sessions || !Array.isArray(sessions) || sessions.length === 0) return;
-      const addr = extractStxAddress(sessions[0]?.addresses || sessions[0]);
+      const data = getLocalStorage();
+      if (!data) return;
+      const addr = extractStxAddress(data?.addresses?.stx?.[0]);
       if (addr) setWalletAddress(addr);
     } catch {}
   }, []);
